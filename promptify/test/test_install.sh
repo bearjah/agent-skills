@@ -73,15 +73,79 @@ test_install_aborts_on_unterminated_block() {
   rm -rf "$home"
 }
 
+test_install_aborts_on_misordered_markers() {
+  local home rc before after
+  home="$(mktemp -d)"
+  mkdir -p "$home/.claude"
+  printf '%s\n' \
+    '# graphify' \
+    'keep me' \
+    '<!-- promptify:end -->' \
+    'stray body' \
+    '<!-- promptify:begin -->' \
+    > "$home/.claude/CLAUDE.md"
+  before="$(cat "$home/.claude/CLAUDE.md")"
+  rc=0
+  HOME="$home" bash "$ROOT/install.sh" >/dev/null 2>/dev/null || rc=$?
+  [ "$rc" -ne 0 ] || fail "expected non-zero exit for an end-before-begin marker, got 0"
+  after="$(cat "$home/.claude/CLAUDE.md")"
+  assert_eq "$after" "$before" "CLAUDE.md content must be unchanged after misordered markers are detected"
+  rm -rf "$home"
+}
+
 test_install_does_not_strip_prose_mentioning_the_marker() {
   local home
   home="$(mktemp -d)"
   mkdir -p "$home/.claude"
-  printf '# graphify\nNote: the literal marker text <!-- promptify:begin --> is just documentation here, not a real block.\nkeep me below the mention\n' \
+  # Seed a REAL, well-formed block (so the strip path actually runs) followed
+  # by a line that merely mentions the marker text as a substring, followed
+  # by more content. An unanchored index()-based match would delete
+  # everything from the mention onward; the anchored, whole-line match must
+  # not.
+  printf '%s\n' \
+    '# graphify' \
+    'keep me above' \
+    '<!-- promptify:begin -->' \
+    'an old promptify block body' \
+    '<!-- promptify:end -->' \
+    'Note: the literal marker text <!-- promptify:begin --> is just documentation here, not a real block.' \
+    'keep me below the mention' \
     > "$home/.claude/CLAUDE.md"
   HOME="$home" bash "$ROOT/install.sh" >/dev/null
   assert_file_has "$home/.claude/CLAUDE.md" "# graphify"
+  assert_file_has "$home/.claude/CLAUDE.md" "keep me above"
+  assert_file_has "$home/.claude/CLAUDE.md" "is just documentation here, not a real block."
   assert_file_has "$home/.claude/CLAUDE.md" "keep me below the mention"
+  rm -rf "$home"
+}
+
+test_install_preserves_claude_md_mode() {
+  local home mode
+  home="$(mktemp -d)"
+  mkdir -p "$home/.claude"
+  printf '# graphify\nkeep me\n' > "$home/.claude/CLAUDE.md"
+  chmod 600 "$home/.claude/CLAUDE.md"
+  HOME="$home" bash "$ROOT/install.sh" >/dev/null
+  HOME="$home" bash "$ROOT/install.sh" >/dev/null
+  mode="$(stat -c '%a' "$home/.claude/CLAUDE.md")"
+  assert_eq "$mode" "600" "CLAUDE.md mode after two installs"
+  rm -rf "$home"
+}
+
+test_install_replaces_claude_md_atomically_via_rename() {
+  local home
+  home="$(mktemp -d)"
+  mkdir -p "$home/.claude"
+  printf '# graphify\nkeep me\n' > "$home/.claude/CLAUDE.md"
+  # The directory stays writable, but CLAUDE.md itself has no write bit.
+  # Replacing it via rename(2) (mv) needs only directory permission and
+  # succeeds; truncating it open (cat > file) needs write permission on the
+  # file itself and would fail. This distinguishes an atomic commit from the
+  # non-atomic truncate-and-write regression.
+  chmod 444 "$home/.claude/CLAUDE.md"
+  HOME="$home" bash "$ROOT/install.sh" >/dev/null 2>/dev/null
+  assert_file_has "$home/.claude/CLAUDE.md" "keep me"
+  assert_file_has "$home/.claude/CLAUDE.md" "<!-- promptify:begin -->"
   rm -rf "$home"
 }
 
@@ -121,15 +185,20 @@ test_install_backs_up_existing_claude_md() {
 }
 
 test_install_edits_a_symlinked_claude_md_in_place() {
-  local home
+  local home n
   home="$(mktemp -d)"
   mkdir -p "$home/.claude" "$home/dotfiles"
   printf '# graphify\nkeep me\n' > "$home/dotfiles/CLAUDE.md"
   ln -s "$home/dotfiles/CLAUDE.md" "$home/.claude/CLAUDE.md"
+  # Two installs: the symlink-destroying bug this guards against only fires
+  # on the SECOND install, once a block already exists and the strip-and-
+  # rewrite path actually runs.
+  HOME="$home" bash "$ROOT/install.sh" >/dev/null
   HOME="$home" bash "$ROOT/install.sh" >/dev/null
   [ -L "$home/.claude/CLAUDE.md" ] || fail "expected ~/.claude/CLAUDE.md to remain a symlink"
   assert_eq "$(readlink "$home/.claude/CLAUDE.md")" "$home/dotfiles/CLAUDE.md" "CLAUDE.md symlink target unchanged"
   assert_file_has "$home/dotfiles/CLAUDE.md" "keep me"
-  assert_file_has "$home/dotfiles/CLAUDE.md" "<!-- promptify:begin -->"
+  n="$(grep -cF '<!-- promptify:begin -->' "$home/dotfiles/CLAUDE.md" || true)"
+  assert_eq "$n" "1" "trigger block count in the real target after two installs"
   rm -rf "$home"
 }
