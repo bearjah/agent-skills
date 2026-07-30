@@ -23,9 +23,11 @@ rely on that, especially if you've hand-edited the generated block or manage
 /p                                 optimize my previous message
 ```
 
-It classifies the prompt, does bounded recon for code and analysis prompts, asks
-up to three questions where a wrong guess would fork the work, rewrites, and then
-waits for `go` / `edit <note>` / `cancel`.
+It classifies the prompt, runs bounded recon whenever resolving a real path
+would change what the rewrite says — regardless of prompt kind, and skipped
+when the deliverable doesn't turn on any specific file — asks up to three
+questions where a wrong guess would fork the work, rewrites, and then waits
+for `go` / `edit <note>` / `cancel`.
 
 Already-precise and trivial prompts bypass the pipeline and run as-is.
 
@@ -59,8 +61,11 @@ consequences follow directly from that design:
   `~/.claude/CLAUDE.md` into a dotfiles repo, that hard link is broken by an
   install — the dotfiles copy stops tracking the live file. A symlink at
   `~/.claude/CLAUDE.md` is fine: it's resolved and written through, so
-  symlink-based dotfile management (stow, chezmoi, etc.) keeps working. The
-  atomic rename is a deliberate trade: it guarantees a crash or a disk-full
+  symlink-based dotfile management (GNU Stow, for instance) keeps working —
+  a manager whose default mode copies rendered files rather than symlinking
+  them (chezmoi's `apply`, for instance) doesn't get this protection, since
+  there's no symlink there to resolve through. The atomic rename is a
+  deliberate trade: it guarantees a crash or a disk-full
   error can never leave `CLAUDE.md` truncated or half-written, at the cost of
   hard-link preservation.
 - **A backup is written to `CLAUDE.md.bak`**, but only on the first install
