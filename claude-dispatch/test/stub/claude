@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Test double: records argv to the cwd it was launched in, then exits.
+#
+# The write is staged and renamed so a poller never observes a partial file.
+set -u
+
+printf '%s\n' "$@" > "$PWD/.dispatch-argv.tmp"
+mv -f "$PWD/.dispatch-argv.tmp" "$PWD/.dispatch-argv"
+exit 0

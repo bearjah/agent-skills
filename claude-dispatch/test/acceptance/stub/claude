@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Acceptance-suite test double for the Claude CLI.
+#
+# Records its argv, one element per line, into the working directory it was
+# launched in. Because tmux sets that directory via `new-window -c`, the file's
+# location proves the dispatcher's cwd choice and its contents prove argv order.
+#
+# This stub belongs to test/acceptance/ and is deliberately independent of any
+# stub the implementation may later add under test/stub/.
+set -u
+
+printf '%s\n' "$@" > "$PWD/.dispatch-argv.tmp"
+mv -f "$PWD/.dispatch-argv.tmp" "$PWD/.dispatch-argv"
+exit 0

@@ -1,0 +1,5 @@
+.worktrees
+.a5c/runs
+.a5c/logs
+*.tmp
+.dispatch-argv
