@@ -94,14 +94,18 @@ test_install_aborts_on_misordered_markers() {
 }
 
 test_install_does_not_strip_prose_mentioning_the_marker() {
-  local home
+  local home rc n
   home="$(mktemp -d)"
   mkdir -p "$home/.claude"
   # Seed a REAL, well-formed block (so the strip path actually runs) followed
   # by a line that merely mentions the marker text as a substring, followed
   # by more content. An unanchored index()-based match would delete
   # everything from the mention onward; the anchored, whole-line match must
-  # not.
+  # not. Assertions below check the OUTCOME (exit status, old body gone, new
+  # block present exactly once) rather than only the survival of strings
+  # that were already in the seed -- an installer that hard-aborts on this
+  # exact fixture would otherwise leave the file untouched and pass every
+  # "did this substring survive" check trivially.
   printf '%s\n' \
     '# graphify' \
     'keep me above' \
@@ -111,7 +115,15 @@ test_install_does_not_strip_prose_mentioning_the_marker() {
     'Note: the literal marker text <!-- promptify:begin --> is just documentation here, not a real block.' \
     'keep me below the mention' \
     > "$home/.claude/CLAUDE.md"
-  HOME="$home" bash "$ROOT/install.sh" >/dev/null
+  rc=0
+  HOME="$home" bash "$ROOT/install.sh" >/dev/null 2>/dev/null || rc=$?
+  assert_eq "$rc" "0" "install must succeed on a well-formed block followed by a prose mention of the marker"
+  if grep -qF 'an old promptify block body' "$home/.claude/CLAUDE.md"; then
+    fail "old block body should have been stripped, proving the strip path actually ran"
+  fi
+  n="$(grep -c '^<!-- promptify:begin -->' "$home/.claude/CLAUDE.md" || true)"
+  assert_eq "$n" "1" "exactly one trigger block after re-stripping"
+  assert_file_has "$home/.claude/CLAUDE.md" 'invoke the Skill tool with `skill: "promptify"`'
   assert_file_has "$home/.claude/CLAUDE.md" "# graphify"
   assert_file_has "$home/.claude/CLAUDE.md" "keep me above"
   assert_file_has "$home/.claude/CLAUDE.md" "is just documentation here, not a real block."
@@ -120,7 +132,7 @@ test_install_does_not_strip_prose_mentioning_the_marker() {
 }
 
 test_install_preserves_claude_md_mode() {
-  local home mode
+  local home mode n
   home="$(mktemp -d)"
   mkdir -p "$home/.claude"
   printf '# graphify\nkeep me\n' > "$home/.claude/CLAUDE.md"
@@ -129,6 +141,11 @@ test_install_preserves_claude_md_mode() {
   HOME="$home" bash "$ROOT/install.sh" >/dev/null
   mode="$(stat -c '%a' "$home/.claude/CLAUDE.md")"
   assert_eq "$mode" "600" "CLAUDE.md mode after two installs"
+  # A no-op installer would leave mode 600 unchanged too (chmod 600 is
+  # already the mode, doing nothing "preserves" it) -- assert the block was
+  # actually written, so a no-op cannot pass this test.
+  n="$(grep -c '^<!-- promptify:begin -->' "$home/.claude/CLAUDE.md" || true)"
+  assert_eq "$n" "1" "trigger block must actually be written, not left by a no-op"
   rm -rf "$home"
 }
 
@@ -200,5 +217,70 @@ test_install_edits_a_symlinked_claude_md_in_place() {
   assert_file_has "$home/dotfiles/CLAUDE.md" "keep me"
   n="$(grep -cF '<!-- promptify:begin -->' "$home/dotfiles/CLAUDE.md" || true)"
   assert_eq "$n" "1" "trigger block count in the real target after two installs"
+  rm -rf "$home"
+}
+
+test_install_writes_through_a_dangling_claude_md_symlink() {
+  local home
+  home="$(mktemp -d)"
+  mkdir -p "$home/.claude" "$home/dotfiles"
+  # The symlink exists but its target does not yet: `[ -e ]` is false for
+  # this path even though `[ -L ]` is true. The installer must still resolve
+  # and write through it instead of replacing the symlink itself.
+  ln -s "$home/dotfiles/CLAUDE.md" "$home/.claude/CLAUDE.md"
+  [ -e "$home/.claude/CLAUDE.md" ] && fail "test setup error: symlink target should not exist yet"
+  HOME="$home" bash "$ROOT/install.sh" >/dev/null
+  [ -L "$home/.claude/CLAUDE.md" ] || fail "expected ~/.claude/CLAUDE.md to remain a symlink after resolving a dangling link"
+  assert_eq "$(readlink "$home/.claude/CLAUDE.md")" "$home/dotfiles/CLAUDE.md" "dangling CLAUDE.md symlink target unchanged"
+  assert_file_has "$home/dotfiles/CLAUDE.md" "<!-- promptify:begin -->"
+  rm -rf "$home"
+}
+
+test_install_cleans_up_the_temp_file_on_abort() {
+  local home
+  home="$(mktemp -d)"
+  mkdir -p "$home/.claude"
+  printf '%s\n' \
+    '# notes' \
+    'keep me' \
+    '<!-- promptify:begin -->' \
+    'orphaned line' \
+    > "$home/.claude/CLAUDE.md"
+  HOME="$home" bash "$ROOT/install.sh" >/dev/null 2>/dev/null || true
+  [ ! -e "$home/.claude/CLAUDE.md.tmp" ] || fail "installer left a stray CLAUDE.md.tmp behind after aborting"
+  rm -rf "$home"
+}
+
+test_install_does_not_clobber_an_existing_backup() {
+  local home
+  home="$(mktemp -d)"
+  mkdir -p "$home/.claude"
+  printf 'good backup content\n' > "$home/.claude/CLAUDE.md.bak"
+  printf 'damaged current content\n' > "$home/.claude/CLAUDE.md"
+  HOME="$home" bash "$ROOT/install.sh" >/dev/null
+  assert_file_has "$home/.claude/CLAUDE.md.bak" "good backup content"
+  if grep -qF 'damaged current content' "$home/.claude/CLAUDE.md.bak"; then
+    fail "existing backup was clobbered by a later install"
+  fi
+  rm -rf "$home"
+}
+
+test_install_abort_message_does_not_overclaim_the_backup() {
+  local home out
+  home="$(mktemp -d)"
+  mkdir -p "$home/.claude"
+  # A pre-existing .bak of unknown origin -- the non-clobbering gate skips
+  # making a new one, so this run must not claim credit for it.
+  printf 'unrelated file, not a promptify backup\n' > "$home/.claude/CLAUDE.md.bak"
+  printf '%s\n' \
+    '# notes' \
+    'keep me' \
+    '<!-- promptify:begin -->' \
+    'orphaned line' \
+    > "$home/.claude/CLAUDE.md"
+  out="$(HOME="$home" bash "$ROOT/install.sh" 2>&1 >/dev/null)" || true
+  if printf '%s' "$out" | grep -qF "this run's backup"; then
+    fail "abort message claimed a backup this run never created"
+  fi
   rm -rf "$home"
 }

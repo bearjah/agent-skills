@@ -29,9 +29,13 @@ ln -sfn "$HERE/commands/p.md" "$CMD_LINK"
 
 # Resolve CLAUDE.md through any existing symlink so a dotfile-managed file
 # (stow/chezmoi, etc.) is edited in place instead of being replaced by a
-# plain file that would orphan the managed copy.
+# plain file that would orphan the managed copy. `-e` alone is false for a
+# DANGLING symlink (target missing), so a dangling link would fall through
+# unresolved and get replaced wholesale by the final `mv` -- check `-L` too,
+# so a dangling link is still resolved and written through rather than
+# destroyed.
 MD="$CLAUDE_DIR/CLAUDE.md"
-if [ -e "$MD" ]; then
+if [ -e "$MD" ] || [ -L "$MD" ]; then
   MD="$(readlink -f "$MD")"
 fi
 
@@ -39,8 +43,13 @@ fi
 # existing backup: if a later re-run started from a bad file, overwriting a
 # good backup with it would destroy the one safety net the user has. The
 # first backup ever made is always the truest "before promptify" snapshot.
+# BACKUP_CREATED tracks whether THIS run made the backup -- not merely
+# whether a file happens to sit at $MD.bak -- so the messages below never
+# describe an unrelated or stale file as "this run's backup."
+BACKUP_CREATED=0
 if [ -s "$MD" ] && [ ! -e "$MD.bak" ]; then
   cp -p "$MD" "$MD.bak"
+  BACKUP_CREATED=1
 fi
 
 # Compose the whole new CLAUDE.md into a temp file and commit it with a
@@ -55,10 +64,10 @@ abort() {
   echo "error: $1" >&2
   echo "  skill symlink: installed at $SKILL_LINK" >&2
   echo "  command symlink: installed at $CMD_LINK" >&2
-  if [ -e "$MD.bak" ]; then
-    echo "  CLAUDE.md: left unmodified; a backup is available at $MD.bak" >&2
+  if [ "$BACKUP_CREATED" -eq 1 ]; then
+    echo "  CLAUDE.md: left unmodified; this run's backup of the pre-install content is at $MD.bak" >&2
   else
-    echo "  CLAUDE.md: left unmodified (no backup exists; the file was empty or did not previously exist)" >&2
+    echo "  CLAUDE.md: left unmodified; this run did not create a backup (any file already at $MD.bak is not verified to hold this run's pre-install content)" >&2
   fi
   echo "  Fix $MD by hand, then re-run install.sh." >&2
   exit 1
@@ -133,6 +142,6 @@ printf 'installed:\n  %s\n  %s\n  %s (trigger block)\n' \
   "$SKILL_LINK" \
   "$CMD_LINK" \
   "$MD"
-if [ -e "$MD.bak" ]; then
+if [ "$BACKUP_CREATED" -eq 1 ]; then
   printf '  %s (backup of pre-install CLAUDE.md)\n' "$MD.bak"
 fi
