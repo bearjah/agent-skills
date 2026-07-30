@@ -18,7 +18,7 @@ and runs it on approval.
 | Output mode | Show the rewrite, then execute on approval |
 | Domain | Any — the skill classifies the prompt and applies a matching lens |
 | Missing information | Ask up to 3 targeted questions before rewriting |
-| Grounding | Light recon (≤5 lookups) for code and analysis prompts |
+| Grounding | Light recon (≤5 lookups) when resolving a noun would change what the prompt says |
 | Packaging | Skill holds the logic; a thin command delegates to it |
 | Rule storage | Universal core in `SKILL.md`; domain lenses in `references/lenses.md`, read on demand |
 
@@ -62,14 +62,17 @@ Bypass check runs here. A prompt that is already precise, or trivially small
 (`ls the downloads folder`), runs as-is with a one-line note. Without this rule
 the wrapper becomes a tax on every short prompt.
 
-### 2. Recon — `code` and `analysis` only
+### 2. Recon — when a real path would sharpen the prompt
 
 Resolve vague nouns to real paths; read `CLAUDE.md` for conventions and the test
 command. Hard stop at 5 lookups. A noun that stays unresolved becomes a
 stage-3 question rather than a guess.
 
-`research`, `writing`, and `creative` prompts skip this stage entirely — there is
-rarely anything on disk worth grounding them against.
+The gate is not the kind, it's whether grounding changes the output: run recon
+when resolving a noun would change what the optimized prompt says (documenting
+a specific module needs the real path), and skip it when the deliverable
+doesn't turn on any one file (a strategy question like "should we move off
+REST to GraphQL" stays the same regardless of what's on disk).
 
 Absent git repo or `CLAUDE.md`: degrade silently to text-only. Not an error.
 

@@ -31,7 +31,7 @@ when it is already precise, or too small to benefit — `ls the downloads folder
 `what does this file do`. Say one line naming the bypass, then do the work.
 Optimizing a trivial prompt is a tax, not a service.
 
-### 2. Recon — `code` and `analysis` only
+### 2. Recon — when a real path would sharpen the prompt
 
 Budget: **five lookups, hard stop.**
 
@@ -41,7 +41,11 @@ Budget: **five lookups, hard stop.**
 A noun you cannot resolve becomes a stage-3 question. Never guess a path.
 
 No git repo or no `CLAUDE.md` is not an error — drop to text-only and continue.
-`research`, `writing`, and `creative` prompts skip this stage entirely.
+Run recon when resolving a noun would change what the optimized prompt says.
+Documenting a specific module needs the real path — run it. A strategy
+question ("should we move off REST to GraphQL") doesn't turn on any one
+file — skip it. Mentioning code is not sufficient; the deliverable has to
+depend on the path.
 
 ### 3. Gap scan — at most three questions
 
@@ -141,7 +145,9 @@ If you hit something ambiguous, ask rather than guessing.
 ```
 
 The header line is a receipt: kind detected, recon depth, questions asked. It is
-how a misfiring classifier gets noticed. Always render it.
+how a misfiring classifier gets noticed. Always render it. When stage 2 does
+not run at all, the header reads `recon: skipped` rather than `recon: 0
+lookups`.
 
 ## Approval
 

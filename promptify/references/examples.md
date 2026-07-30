@@ -8,34 +8,38 @@ read-and-judge check; there is no automated assertion on prose quality.
 
 Exercises recon and the gap scan.
 
-**Raw:** `/p make the dashboard faster`
+**Raw:** `/p the export keeps timing out`
 
-**Expected behavior:** classifies `code`; runs recon and resolves "the dashboard"
-to a real path; asks 1–3 forking questions (which app, which kind of slow); the
-rewrite names actual paths and a real verify command; the receipt header reports
-non-zero recon and question counts.
+**Expected behavior:** classifies `code`; runs recon and resolves "the export"
+to a real path; asks 1–3 forking questions (which export, and whether "timing
+out" means a hard request timeout or just slow completion); the rewrite names
+actual paths and a real verify command; the receipt header reports non-zero
+recon and question counts.
 
 **Optimized:**
 
 ```
-Act as a senior frontend performance engineer working in a
-pnpm + vitest monorepo.
+Act as a backend engineer who owns the reporting pipeline in a
+Django + pytest service.
 
 <task>
-Reduce initial load time of the dashboard at apps/web/dashboard/.
+Fix the CSV export in src/reports/export.py timing out for date
+ranges longer than 90 days.
 </task>
 
 <constraints>
-- Frontend only — no backend or API changes.
-- Don't touch apps/web/admin/.
+- Export logic only — don't touch the scheduling cron in
+  src/reports/scheduler.py.
+- Keep the existing streaming-response pattern; don't buffer the
+  full export in memory.
 </constraints>
 
 <success>
-Before/after number for bundle size or first paint.
-`pnpm vitest run` still passes.
+A 12-month export completes in under 30 seconds.
+`pytest src/reports/tests/test_export.py` still passes.
 </success>
 
-If you hit something ambiguous, ask rather than guessing.
+Ask before changing the export's public API; don't guess at it.
 ```
 
 ### Case 2: already precise prompt
