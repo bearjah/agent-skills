@@ -9,4 +9,4 @@ The raw prompt to optimize:
 
 $ARGUMENTS
 
-If the above is empty, optimize my previous message instead.
+If the above is empty, follow the skill's no-argument edge case.
