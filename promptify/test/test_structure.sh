@@ -48,3 +48,26 @@ test_lenses_meta_composes_writing_and_code() {
 test_lenses_within_line_budget() {
   assert_max_lines "$ROOT/references/lenses.md" 200
 }
+
+test_examples_has_four_cases() {
+  local n
+  n="$(grep -cE '^### Case [0-9]+:' "$ROOT/references/examples.md" 2>/dev/null || printf '0')"
+  assert_eq "$n" "4" "case count in examples.md"
+}
+
+test_examples_cover_the_required_scenarios() {
+  local s
+  for s in "vague code" "already precise" "multi-domain" "non-code"; do
+    assert_file_has "$ROOT/references/examples.md" "$s"
+  done
+}
+
+test_examples_each_case_has_all_three_parts() {
+  local raw expected optimized
+  raw="$(grep -cF '**Raw:**' "$ROOT/references/examples.md" 2>/dev/null || printf '0')"
+  expected="$(grep -cF '**Expected behavior:**' "$ROOT/references/examples.md" 2>/dev/null || printf '0')"
+  optimized="$(grep -cF '**Optimized:**' "$ROOT/references/examples.md" 2>/dev/null || printf '0')"
+  assert_eq "$raw" "4" "Raw sections"
+  assert_eq "$expected" "4" "Expected behavior sections"
+  assert_eq "$optimized" "4" "Optimized sections"
+}
