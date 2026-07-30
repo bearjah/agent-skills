@@ -367,9 +367,11 @@ test_lenses_has_a_section_per_kind() {
   done
 }
 
-test_lenses_meta_reuses_other_lenses() {
-  assert_file_has "$ROOT/references/lenses.md" "writing"
-  assert_file_has "$ROOT/references/lenses.md" "code"
+test_lenses_meta_composes_writing_and_code() {
+  local body
+  body="$(awk '/^## meta$/{f=1;next} /^## /{f=0} f' "$ROOT/references/lenses.md")"
+  assert_contains "$body" "writing" "meta section body"
+  assert_contains "$body" "code" "meta section body"
 }
 
 test_lenses_within_line_budget() {
