@@ -27,9 +27,11 @@ Pick exactly one kind: `code`, `research`, `writing`, `analysis`, `creative`,
 `meta`.
 
 Then check for bypass. **Skip the rest of the pipeline and run the prompt as-is**
-when it is already precise, or too small to benefit — `ls the downloads folder`,
-`what does this file do`. Say one line naming the bypass, then do the work.
-Optimizing a trivial prompt is a tax, not a service.
+in either of two cases. It is already precise — naming exact files, values and
+scope leaves nothing to sharpen, however large the task. Or it is too small to
+benefit, like `ls the downloads folder` or `what does this file do`. Say one
+line naming the bypass, then do the work. Optimizing a prompt that is already
+specific is a tax, not a service.
 
 ### 2. Recon — when a real path would sharpen the prompt
 

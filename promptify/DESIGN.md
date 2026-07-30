@@ -58,9 +58,11 @@ Five stages, each with a stop condition that keeps the wrapper a wrapper.
 
 Assign one of: `code`, `research`, `writing`, `analysis`, `creative`, `meta`.
 
-Bypass check runs here. A prompt that is already precise, or trivially small
-(`ls the downloads folder`), runs as-is with a one-line note. Without this rule
-the wrapper becomes a tax on every short prompt.
+Bypass check runs here, on either of two conditions. A prompt that is already
+precise — naming exact files, values and scope, however large the task — runs
+as-is, as does one that is trivially small (`ls the downloads folder`). Either
+way, a one-line note. Without this rule the wrapper becomes a tax on every
+prompt that was already specific enough.
 
 ### 2. Recon — when a real path would sharpen the prompt
 
