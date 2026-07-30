@@ -71,3 +71,18 @@ test_examples_each_case_has_all_three_parts() {
   assert_eq "$expected" "4" "Expected behavior sections"
   assert_eq "$optimized" "4" "Optimized sections"
 }
+
+test_command_frontmatter() {
+  assert_eq "$(head -1 "$ROOT/commands/p.md")" "---" "first line of p.md"
+  assert_file_has "$ROOT/commands/p.md" "description:"
+  assert_file_has "$ROOT/commands/p.md" "argument-hint:"
+}
+
+test_command_delegates_to_the_skill() {
+  assert_file_has "$ROOT/commands/p.md" "promptify"
+  assert_file_has "$ROOT/commands/p.md" '$ARGUMENTS'
+}
+
+test_command_stays_thin() {
+  assert_max_lines "$ROOT/commands/p.md" 20
+}
