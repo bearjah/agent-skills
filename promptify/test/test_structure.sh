@@ -30,3 +30,21 @@ test_skill_points_at_lenses() {
 test_skill_within_line_budget() {
   assert_max_lines "$ROOT/SKILL.md" 200
 }
+
+test_lenses_has_a_section_per_kind() {
+  local k
+  for k in code research writing analysis creative meta; do
+    assert_file_has "$ROOT/references/lenses.md" "## $k"
+  done
+}
+
+test_lenses_meta_composes_writing_and_code() {
+  local body
+  body="$(awk '/^## meta$/{f=1;next} /^## /{f=0} f' "$ROOT/references/lenses.md")"
+  assert_contains "$body" "writing" "meta section body"
+  assert_contains "$body" "code" "meta section body"
+}
+
+test_lenses_within_line_budget() {
+  assert_max_lines "$ROOT/references/lenses.md" 200
+}
