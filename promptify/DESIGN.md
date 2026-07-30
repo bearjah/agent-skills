@@ -85,7 +85,8 @@ manufacture them to look thorough.
 
 ### 4. Rewrite
 
-Apply the universal core, then read `references/lenses.md` and apply the section
+Apply the universal core, the anti-patterns stripped, and the guardrails on
+the optimizer itself, then read `references/lenses.md` and apply the section
 for the detected kind only.
 
 ### 5. Present and approve
@@ -220,7 +221,7 @@ regression cases. Four are required:
 1. A vague code prompt — exercises recon and the gap scan.
 2. An already-precise prompt — must bypass.
 3. A multi-domain prompt — classifier check.
-4. A non-code prompt — must skip recon.
+4. A prompt whose deliverable doesn't turn on any one file — must skip recon.
 
 Running these four by hand after any edit to the rule set is the regression
 check. There is no automated test harness; the skill is prose, and the cases are

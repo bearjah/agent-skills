@@ -58,12 +58,15 @@ Never manufacture questions to look thorough.
 
 ### 4. Rewrite
 
-Apply the universal core below, then read `references/lenses.md` and apply
-**only** the section for the kind you detected.
+Apply the universal core, the anti-patterns to strip, and the guardrails
+below, then read `references/lenses.md` and apply **only** the section for
+the kind you detected.
 
 ### 5. Present and wait
 
-Render the output contract below. Do not begin the work until approved.
+If the prompt is aimed at another tool, print the rewrite and stop there —
+offer only `edit` / `cancel`, never `go`. Otherwise render the output contract
+below. Do not begin the work until approved.
 
 ## Universal core
 

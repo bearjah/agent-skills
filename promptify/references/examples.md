@@ -4,6 +4,9 @@ Four hand-run cases. After any edit to `SKILL.md` or `references/lenses.md`, run
 each raw prompt through the pipeline and check the behavior matches. This is a
 read-and-judge check; there is no automated assertion on prose quality.
 
+The optimized-prompt blocks below are hand-authored expected outputs, not
+captured runs — none of the four cases has actually been executed yet.
+
 ### Case 1: vague code prompt
 
 Exercises recon and the gap scan.
@@ -93,10 +96,11 @@ Must skip recon entirely.
 
 **Raw:** `/p research whether we should move off REST to GraphQL`
 
-**Expected behavior:** classifies `research`; **zero** recon lookups; the receipt
-header shows `recon: skipped`; the research lens supplies source bar, recency
-window, and the requirement to report conflicting sources rather than silently
-resolving them.
+**Expected behavior:** classifies `research`; **zero** recon lookups, because
+the deliverable is a strategy assessment that doesn't turn on any specific
+file; the receipt header shows `recon: skipped`; the research lens supplies
+source bar, recency window, and the requirement to report conflicting sources
+rather than silently resolving them.
 
 **Optimized:**
 
