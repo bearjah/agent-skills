@@ -12,7 +12,6 @@ question to answer in the rewrite — drop any that the raw prompt already settl
 - **Follow existing patterns.** Point at a sibling file that models the style.
 - **Plan-first or just-do.** Big blast radius means plan first; a one-file fix
   does not.
-- **On blocked.** Ask, or assume-and-flag. Say which.
 
 ## research
 
