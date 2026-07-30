@@ -27,7 +27,6 @@ ROOT="$(cd "$ACC_DIR/../.." && pwd)"
 ENTRYPOINT="$ROOT/bin/dispatch-task.sh"
 INSTALLER="$ROOT/install.sh"
 STUB="$ACC_DIR/stub/claude"
-REAL_HOME="$HOME"
 
 SOCK="dispatch-acc-$$"
 TMUX_ENV=""
@@ -66,7 +65,7 @@ CASES=(
   ac_15_cleanup_refuses_dirty
   ac_16_cleanup_refuses_unmerged
   ac_17_install_symlinks_work
-  ac_18_install_preserves_ralph
+  ac_18_install_preserves_unrelated_tooling
 )
 
 # --------------------------------------------------------------------------
@@ -860,42 +859,53 @@ ac_17_install_symlinks_work() {
 }
 
 # --------------------------------------------------------------------------
-# AC-18: regression guard - installing must not disturb the ralph tooling
+# AC-18: regression guard - installing must not disturb unrelated tooling
 # --------------------------------------------------------------------------
-ac_18_install_preserves_ralph() {
+ac_18_install_preserves_unrelated_tooling() {
   local home="$TC/home"
-  local src_sh="$REAL_HOME/.claude/scripts/ralph-new-terminal.sh"
-  local src_md="$REAL_HOME/.claude/commands/ralph-terminal.md"
-
-  if [ ! -f "$src_sh" ] || [ ! -f "$src_md" ]; then
-    fail "the live ralph tooling is missing, so the regression guard cannot run: $src_sh / $src_md"
-    return 0
-  fi
-
   mkdir -p "$home/.claude/scripts" "$home/.claude/commands"
-  cp -p "$src_sh" "$home/.claude/scripts/ralph-new-terminal.sh"
-  cp -p "$src_md" "$home/.claude/commands/ralph-terminal.md"
 
-  local ralph_sh="$home/.claude/scripts/ralph-new-terminal.sh"
-  local ralph_md="$home/.claude/commands/ralph-terminal.md"
+  # A synthetic neighbour rather than whatever happens to sit in the real
+  # ~/.claude. The property under test is that install.sh leaves other files
+  # alone, and it has to hold on any machine - including one whose ~/.claude
+  # holds nothing else at all.
+  local other_sh="$home/.claude/scripts/other-tool.sh"
+  local other_md="$home/.claude/commands/other-tool.md"
+  cat >"$other_sh" <<'EOF'
+#!/usr/bin/env bash
+printf 'Usage: other-tool.sh ARG\n' >&2
+exit 2
+EOF
+  chmod +x "$other_sh"
+  cat >"$other_md" <<'EOF'
+---
+description: "An unrelated command predating the dispatch install"
+---
+EOF
+
   local sh_before md_before
-  sh_before="$(sha256sum <"$ralph_sh")"
-  md_before="$(sha256sum <"$ralph_md")"
+  sh_before="$(sha256sum <"$other_sh")"
+  md_before="$(sha256sum <"$other_md")"
 
   RUN_ENV=("HOME=$home")
   run_capture "$INSTALLER"
   assert_zero "$RC" "install.sh exit status (stderr: $(flat "$ERR"))"
 
-  assert_eq "$(sha256sum <"$ralph_sh" 2>/dev/null || printf 'MISSING')" "$sh_before" \
-    "ralph-new-terminal.sh must be byte-identical after install"
-  assert_eq "$(sha256sum <"$ralph_md" 2>/dev/null || printf 'MISSING')" "$md_before" \
-    "ralph-terminal.md must be byte-identical after install"
+  assert_eq "$(sha256sum <"$other_sh" 2>/dev/null || printf 'MISSING')" "$sh_before" \
+    "other-tool.sh must be byte-identical after install"
+  assert_eq "$(sha256sum <"$other_md" 2>/dev/null || printf 'MISSING')" "$md_before" \
+    "other-tool.md must be byte-identical after install"
 
-  # Still functional: inside tmux, with no arguments, it refuses and shows usage.
-  RUN_ENV=("HOME=$home" "TMUX=$TMUX_ENV")
-  run_capture "$ralph_sh"
-  assert_nonzero "$RC" "ralph-new-terminal.sh with no arguments"
-  assert_match "$OUT$ERR" '[Uu]sage' "ralph-new-terminal.sh still prints its usage"
+  # Still functional: with no arguments it refuses and shows its usage.
+  RUN_ENV=("HOME=$home")
+  run_capture "$other_sh"
+  assert_nonzero "$RC" "other-tool.sh with no arguments"
+  assert_match "$OUT$ERR" '[Uu]sage' "other-tool.sh still prints its usage"
+
+  # The neighbour surviving is only half the requirement: the install itself
+  # must still have landed beside it.
+  [ -L "$home/.claude/scripts/dispatch-task.sh" ] ||
+    fail "install.sh must still create its own symlink alongside unrelated files"
 }
 
 # --------------------------------------------------------------------------

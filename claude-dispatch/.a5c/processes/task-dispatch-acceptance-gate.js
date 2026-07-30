@@ -475,7 +475,7 @@ const CRITERIA = [
   { id: 'AC-15', requirement: 'Cleanup refuses a dirty worktree unless forced',          outcome: 'Non-zero + "uncommitted changes" + directory present; --force -> exit 0 and gone',                       command: './test/acceptance/run-acceptance.sh ac_15_cleanup_refuses_dirty' },
   { id: 'AC-16', requirement: 'Cleanup refuses unmerged commits unless forced',          outcome: 'Non-zero, stderr contains "not in origin/main", directory still present',                                command: './test/acceptance/run-acceptance.sh ac_16_cleanup_refuses_unmerged' },
   { id: 'AC-17', requirement: 'Installer exposes the tool at documented paths',          outcome: 'Both symlinks created under a temp HOME; --help through the symlink exits 0; dispatch.md declares allowed-tools', command: './test/acceptance/run-acceptance.sh ac_17_install_symlinks_work' },
-  { id: 'AC-18', requirement: 'REGRESSION GUARD: install must not disturb ralph tooling', outcome: 'ralph-new-terminal.sh and ralph-terminal.md byte-identical after install; ralph still prints usage and exits non-zero with no args', command: './test/acceptance/run-acceptance.sh ac_18_install_preserves_ralph' },
+  { id: 'AC-18', requirement: 'REGRESSION GUARD: install must not disturb unrelated tooling', outcome: 'Pre-existing scripts/ and commands/ files byte-identical after install; the neighbour still prints usage and exits non-zero with no args; dispatch symlink lands beside it', command: './test/acceptance/run-acceptance.sh ac_18_install_preserves_unrelated_tooling' },
 ];
 
 const DEFAULTS = {
