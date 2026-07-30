@@ -1,10 +1,14 @@
 ---
-description: "Dispatch a briefed session into an isolated worktree in a new tmux window"
+description: "Dispatch a briefed session into an isolated worktree in a new tmux or herdr window"
 argument-hint: "--slug SLUG --brief PATH --target REPO [--ref REPO] [--skill NAME] [--permission-mode MODE]"
 allowed-tools: ["Bash(~/.claude/scripts/dispatch-task.sh:*)"]
 ---
 
 # Dispatch Task
+
+The new session opens as a tmux window or a herdr tab, whichever you are in.
+The backend is detected from `$TMUX` / `$HERDR_ENV`, so there is nothing to
+pass; the report's `switch:` line tells you how to reach it.
 
 Before running this, write the briefing to `~/docs/dispatch/YYYY-MM-DD-<slug>.md`
 with these sections:

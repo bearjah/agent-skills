@@ -95,7 +95,18 @@ if [ -n "$CLEANUP" ]; then
 fi
 
 # --- preflight ---
-[ -n "${TMUX:-}" ] || die "not inside a tmux session; start tmux and retry"
+MUX="$(detect_mux)" \
+  || die "unsupported DISPATCH_MUX: ${DISPATCH_MUX:-} (want one of: tmux herdr)"
+case "$MUX" in
+  none)
+    die "no supported terminal multiplexer detected; run inside tmux or herdr, or set DISPATCH_MUX" ;;
+  herdr)
+    command -v "${DISPATCH_HERDR_BIN:-herdr}" >/dev/null 2>&1 \
+      || die "HERDR_ENV is set but ${DISPATCH_HERDR_BIN:-herdr} is not on PATH"
+    # herdr answers in JSON and the pane id has to be read back out of it.
+    command -v python3 >/dev/null 2>&1 \
+      || die "the herdr backend needs python3 to read herdr's JSON replies" ;;
+esac
 [ -n "$SLUG" ]     || die "--slug is required"
 [ -n "$BRIEF" ]    || die "--brief is required"
 [ -f "$BRIEF" ]    || die "brief not found: $BRIEF"
@@ -139,16 +150,17 @@ window_name="$(basename "${resolved_targets[0]}")-$SLUG"
 prompt="/$SKILL Read $BRIEF — it is your briefing. Follow it."
 
 build_claude_argv "$prompt" "$session_id" "$PERMISSION_MODE" ${add_dirs+"${add_dirs[@]}"}
-launch_window "$window_name" "$primary_wt" "${CLAUDE_ARGV[@]}"
+launch_window "$MUX" "$window_name" "$primary_wt" "${CLAUDE_ARGV[@]}"
 
 project_slug="$(printf '%s' "$primary_wt" | tr '/.' '--')"
 cat <<EOF
 dispatched: $window_name
+  mux:        $MUX
   cwd:        $primary_wt
   worktrees:  ${target_worktrees[*]}
   add-dir:    ${add_dirs[*]:-<none>}
   session:    $session_id
   transcript: ~/.claude/projects/$project_slug/$session_id.jsonl
-  switch:     tmux select-window -t $window_name
+  switch:     $LAUNCH_SWITCH_HINT
   cleanup:    dispatch-task.sh --cleanup $SLUG ${TARGETS[*]/#/--target }
 EOF

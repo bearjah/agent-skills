@@ -27,6 +27,8 @@ ROOT="$(cd "$ACC_DIR/../.." && pwd)"
 ENTRYPOINT="$ROOT/bin/dispatch-task.sh"
 INSTALLER="$ROOT/install.sh"
 STUB="$ACC_DIR/stub/claude"
+HERDR_STUB="$ROOT/test/stub/herdr"
+ACC_HERDR_ENV=""
 
 SOCK="dispatch-acc-$$"
 TMUX_ENV=""
@@ -48,7 +50,7 @@ RUN_ENV=()
 ARGV=()
 
 CASES=(
-  ac_01_requires_tmux
+  ac_01_requires_a_multiplexer
   ac_02_requires_brief
   ac_03_repo_resolution
   ac_04_rejects_existing_worktree_or_branch
@@ -66,6 +68,7 @@ CASES=(
   ac_16_cleanup_refuses_unmerged
   ac_17_install_symlinks_work
   ac_18_install_preserves_unrelated_tooling
+  ac_19_herdr_backend_launches
 )
 
 # --------------------------------------------------------------------------
@@ -293,8 +296,16 @@ _dispatch() {
     DRC=126
     return 0
   fi
+  # HERDR_ENV and DISPATCH_MUX are pinned rather than inherited. herdr exports
+  # HERDR_ENV into everything it starts, so a suite run from inside a herdr tab
+  # would otherwise pick the herdr backend and open real tabs in the operator's
+  # live session.
   env \
     TMUX="$tmux_value" \
+    HERDR_ENV="$ACC_HERDR_ENV" \
+    DISPATCH_MUX="" \
+    DISPATCH_HERDR_BIN="$HERDR_STUB" \
+    DISPATCH_HERDR_STATE="$TC/herdr-state" \
     DISPATCH_CLAUDE_BIN="$STUB" \
     DISPATCH_SEARCH_GLOB="$TC/code/*" \
     "$ENTRYPOINT" "$@" >"$TC/.acc-stdout" 2>"$TC/.acc-stderr"
@@ -305,11 +316,17 @@ _dispatch() {
 }
 
 run_dispatch() {
-  _dispatch "$TMUX_ENV" "$@"
+  ACC_HERDR_ENV="" _dispatch "$TMUX_ENV" "$@"
 }
 
 run_dispatch_without_tmux() {
-  _dispatch "" "$@"
+  ACC_HERDR_ENV="" _dispatch "" "$@"
+}
+
+# No TMUX, HERDR_ENV=1: the herdr backend, driven against the stub.
+run_dispatch_herdr() {
+  mkdir -p "$TC/herdr-state"
+  ACC_HERDR_ENV=1 _dispatch "" "$@"
 }
 
 # run_capture <exe> [args...] - environment supplied via the RUN_ENV array
@@ -380,15 +397,16 @@ load_dispatch_argv() {
 # --------------------------------------------------------------------------
 # AC-1: $TMUX unset is a hard fail
 # --------------------------------------------------------------------------
-ac_01_requires_tmux() {
+ac_01_requires_a_multiplexer() {
   mkdir -p "$TC/code/org"
   mk_std_repo "$TC/code/org/primary"
   printf '# brief\n' >"$TC/brief.md"
 
   run_dispatch_without_tmux --slug ac1 --brief "$TC/brief.md" --target primary
 
-  assert_nonzero "$DRC" "exit status with TMUX empty"
-  assert_contains "$DERR" "not inside a tmux session" "stderr"
+  assert_nonzero "$DRC" "exit status with neither TMUX nor HERDR_ENV"
+  assert_contains "$DERR" "no supported terminal multiplexer" "stderr"
+  assert_contains "$DERR" "herdr" "the error must name both supported multiplexers"
   assert_absent "$TC/code/org/primary-wt-ac1" "worktree after a rejected dispatch"
   assert_no_worktrees "$TC/code/org" "preflight must leave nothing behind"
 }
@@ -906,6 +924,43 @@ EOF
   # must still have landed beside it.
   [ -L "$home/.claude/scripts/dispatch-task.sh" ] ||
     fail "install.sh must still create its own symlink alongside unrelated files"
+}
+
+# --------------------------------------------------------------------------
+# AC-19: the herdr backend dispatches with the same argv contract as tmux
+#
+# herdr's `pane run` evaluates a joined string in the pane's shell rather than
+# execing argv, which is the one place the two backends could diverge: an
+# unquoted prompt splits into a word per argument and the session comes up with
+# a broken brief. The stub evals the same way the real client does, so this
+# pins the quoting rather than trusting it.
+# --------------------------------------------------------------------------
+ac_19_herdr_backend_launches() {
+  mkdir -p "$TC/code/org"
+  mk_std_repo "$TC/code/org/primary"
+  printf '# brief\n' >"$TC/brief.md"
+
+  run_dispatch_herdr --slug ac19 --brief "$TC/brief.md" --target primary
+  assert_zero "$DRC" "herdr dispatch exit status (stderr: $(flat "$DERR"))"
+
+  local wt="$TC/code/org/primary-wt-ac19"
+  assert_dir "$wt" "the herdr backend still creates the primary worktree"
+
+  poll_for_dispatch_argv "$wt" || { fail "no argv recorded under the herdr backend"; return 0; }
+  read_argv "$wt/.dispatch-argv"
+  assert_eq "$(argv_at 0)" \
+    "/superpowers:brainstorming Read $TC/brief.md — it is your briefing. Follow it." \
+    "the whole prompt must survive herdr's shell as a single argument"
+  assert_eq "$(argv_at 1)" "--session-id" "session flag follows the prompt"
+
+  # The tab is opened where the work is, and labelled like the tmux window.
+  assert_eq "$(cat "$TC/herdr-state/tab-cwd" 2>/dev/null)" "$wt" "tab cwd"
+  assert_eq "$(cat "$TC/herdr-state/tab-label" 2>/dev/null)" "primary-ac19" "tab label"
+
+  # The report has to tell the operator how to reach it in herdr terms.
+  assert_contains "$DOUT" "mux:" "report names the backend"
+  assert_contains "$DOUT" "herdr tab focus" "report gives a herdr focus command"
+  assert_not_contains "$DOUT" "tmux select-window" "report must not give tmux advice under herdr"
 }
 
 # --------------------------------------------------------------------------

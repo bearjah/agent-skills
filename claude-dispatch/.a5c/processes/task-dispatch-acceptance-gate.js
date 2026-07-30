@@ -458,7 +458,7 @@ const DOCS = '/home/berjah/docs';
  * `command` is the observing command; the acceptance runner takes a case name.
  */
 const CRITERIA = [
-  { id: 'AC-1',  requirement: 'Errors: $TMUX unset is a hard fail',                      outcome: 'Exit non-zero, stderr contains "not inside a tmux session", no worktree created',                        command: './test/acceptance/run-acceptance.sh ac_01_requires_tmux' },
+  { id: 'AC-1',  requirement: 'Errors: no detectable multiplexer is a hard fail',        outcome: 'With neither $TMUX nor $HERDR_ENV: exit non-zero, stderr contains "no supported terminal multiplexer" and names both, no worktree created', command: './test/acceptance/run-acceptance.sh ac_01_requires_a_multiplexer' },
   { id: 'AC-2',  requirement: 'Errors: missing brief is a hard fail',                    outcome: 'Exit non-zero, stderr contains "brief not found", no worktree created',                                  command: './test/acceptance/run-acceptance.sh ac_02_requires_brief' },
   { id: 'AC-3',  requirement: 'Repo names resolve; unknown/ambiguous errors with candidates', outcome: 'Unknown -> "no repo named"; two matches -> "ambiguous" plus both paths; neither creates a worktree', command: './test/acceptance/run-acceptance.sh ac_03_repo_resolution' },
   { id: 'AC-4',  requirement: 'Errors: existing worktree path or branch is a hard fail', outcome: 'Exit non-zero, stderr "already exists", pre-existing directory untouched',                               command: './test/acceptance/run-acceptance.sh ac_04_rejects_existing_worktree_or_branch' },
@@ -476,6 +476,7 @@ const CRITERIA = [
   { id: 'AC-16', requirement: 'Cleanup refuses unmerged commits unless forced',          outcome: 'Non-zero, stderr contains "not in origin/main", directory still present',                                command: './test/acceptance/run-acceptance.sh ac_16_cleanup_refuses_unmerged' },
   { id: 'AC-17', requirement: 'Installer exposes the tool at documented paths',          outcome: 'Both symlinks created under a temp HOME; --help through the symlink exits 0; dispatch.md declares allowed-tools', command: './test/acceptance/run-acceptance.sh ac_17_install_symlinks_work' },
   { id: 'AC-18', requirement: 'REGRESSION GUARD: install must not disturb unrelated tooling', outcome: 'Pre-existing scripts/ and commands/ files byte-identical after install; the neighbour still prints usage and exits non-zero with no args; dispatch symlink lands beside it', command: './test/acceptance/run-acceptance.sh ac_18_install_preserves_unrelated_tooling' },
+  { id: 'AC-19', requirement: 'herdr backend dispatches with the same argv contract as tmux', outcome: 'With HERDR_ENV=1 and no $TMUX: worktree created, tab opened at the worktree labelled <primary>-<slug>, the full prompt arrives as one argv entry through herdr\'s shell, report names the backend and gives a "herdr tab focus" command instead of tmux advice', command: './test/acceptance/run-acceptance.sh ac_19_herdr_backend_launches' },
 ];
 
 const DEFAULTS = {

@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# Test double for herdr: records what it was asked to do, then does a faithful
+# minimum of it.
+#
+# `pane run` deliberately reproduces the real thing's semantics rather than a
+# convenient version of them. herdr joins the command arguments with spaces and
+# evaluates the result in the pane's shell instead of execing argv, so this
+# stub evals too. A dispatcher that forgot to quote would word-split here
+# exactly as it does in a live session, and the test fails instead of passing
+# by accident.
+set -u
+
+STATE="${DISPATCH_HERDR_STATE:?stub needs DISPATCH_HERDR_STATE}"
+mkdir -p "$STATE"
+
+case "${1:-}/${2:-}" in
+  tab/create)
+    shift 2
+    cwd=""
+    label=""
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        --cwd)   cwd="${2:-}";   shift 2 ;;
+        --label) label="${2:-}"; shift 2 ;;
+        --no-focus|--focus) shift ;;
+        *) shift ;;
+      esac
+    done
+    printf '%s\n' "$cwd"   >"$STATE/tab-cwd"
+    printf '%s\n' "$label" >"$STATE/tab-label"
+    printf '{"id":"cli:tab:create","result":{"root_pane":{"pane_id":"w1:p2","tab_id":"w1:t3","cwd":"%s"},"tab":{"tab_id":"w1:t3","label":"%s"},"type":"tab_created"}}\n' \
+      "$cwd" "$label"
+    ;;
+
+  pane/run)
+    pane="${3:?stub: pane run needs a pane id}"
+    shift 3
+    printf '%s\n' "$pane" >"$STATE/pane-id"
+    printf '%s\n' "$*"    >"$STATE/pane-run-command"
+
+    cwd="$(cat "$STATE/tab-cwd" 2>/dev/null || true)"
+    [ -n "$cwd" ] && cd "$cwd"
+
+    # Joined, then evaluated by a shell - just like herdr does.
+    eval "$*"
+
+    printf '{"id":"cli:pane:run","result":{"type":"ok"}}\n'
+    ;;
+
+  tab/focus)
+    printf '{"id":"cli:tab:focus","result":{"type":"ok"}}\n'
+    ;;
+
+  *)
+    printf '{"error":{"code":"unsupported","message":"stub got: %s"},"id":"cli:request"}\n' "$*" >&2
+    exit 1
+    ;;
+esac

@@ -5,14 +5,29 @@ dispatch() {
   "$ROOT/bin/dispatch-task.sh" "$@" 2>&1
 }
 
-test_preflight_requires_tmux() {
+# HERDR_ENV has to be cleared alongside TMUX: herdr exports it into every
+# process it starts, so a suite run from inside a herdr tab would otherwise
+# detect a live multiplexer here and dispatch for real.
+test_preflight_requires_a_multiplexer() {
   mkrepo "$SANDBOX/r" main
   mkremote "$SANDBOX/r"
   printf 'brief\n' > "$SANDBOX/b.md"
   local out
-  out="$(TMUX='' dispatch --slug s --brief "$SANDBOX/b.md" --target "$SANDBOX/r")" \
-    && fail "expected failure outside tmux"
-  assert_contains "$out" "not inside a tmux session"
+  out="$(TMUX='' HERDR_ENV='' DISPATCH_MUX='' \
+         dispatch --slug s --brief "$SANDBOX/b.md" --target "$SANDBOX/r")" \
+    && fail "expected failure with no multiplexer"
+  assert_contains "$out" "no supported terminal multiplexer"
+  [ ! -d "$SANDBOX/r-wt-s" ] || fail "worktree created despite preflight failure"
+}
+
+test_preflight_rejects_an_unknown_mux_override() {
+  mkrepo "$SANDBOX/r" main
+  mkremote "$SANDBOX/r"
+  printf 'brief\n' > "$SANDBOX/b.md"
+  local out
+  out="$(DISPATCH_MUX=screen dispatch --slug s --brief "$SANDBOX/b.md" --target "$SANDBOX/r")" \
+    && fail "expected failure for an unsupported DISPATCH_MUX"
+  assert_contains "$out" "unsupported DISPATCH_MUX"
   [ ! -d "$SANDBOX/r-wt-s" ] || fail "worktree created despite preflight failure"
 }
 
