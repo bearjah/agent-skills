@@ -43,9 +43,9 @@ A noun you cannot resolve becomes a stage-3 question. Never guess a path.
 No git repo or no `CLAUDE.md` is not an error — drop to text-only and continue.
 Run recon when resolving a noun would change what the optimized prompt says.
 Documenting a specific module needs the real path — run it. A strategy
-question ("should we move off REST to GraphQL") doesn't turn on any one
-file — skip it. Mentioning code is not sufficient; the deliverable has to
-depend on the path.
+question ("is Postgres or DynamoDB the better fit for us") doesn't turn on
+any one file — skip it. Mentioning code is not sufficient; the deliverable
+has to depend on the path.
 
 ### 3. Gap scan — at most three questions
 

@@ -71,8 +71,8 @@ stage-3 question rather than a guess.
 The gate is not the kind, it's whether grounding changes the output: run recon
 when resolving a noun would change what the optimized prompt says (documenting
 a specific module needs the real path), and skip it when the deliverable
-doesn't turn on any one file (a strategy question like "should we move off
-REST to GraphQL" stays the same regardless of what's on disk).
+doesn't turn on any one file (a strategy question like "is Postgres or
+DynamoDB the better fit for us" stays the same regardless of what's on disk).
 
 Absent git repo or `CLAUDE.md`: degrade silently to text-only. Not an error.
 
