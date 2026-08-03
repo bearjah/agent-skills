@@ -13,8 +13,8 @@ everything you learn back comes from the artifact it writes.
 ./install.sh
 ```
 
-Symlinks `bin/dispatch-task.sh` and `commands/dispatch.md` into `~/.claude/`,
-making `/dispatch` available in sessions.
+Symlinks `bin/dispatch-task.sh`, `commands/dispatch.md` and the `finalize-work/`
+skill into `~/.claude/`, making `/dispatch` and the skill available in sessions.
 
 ## Usage
 
@@ -97,6 +97,29 @@ dispatch-task.sh --cleanup fix-auth --target minimos
 
 Refuses a worktree with uncommitted changes or unmerged commits unless
 `--force`.
+
+## Closing the loop: the `finalize-work` skill
+
+`finalize-work/SKILL.md` is the counterpart to a dispatch. It runs **inside the
+finishing worktree**, immediately before the session is closed, and it reconciles
+the paperwork a dispatch leaves behind: are the documents' `**Status:**` lines
+still true against what `gh` says actually merged, did anything deferred go
+unrecorded, and what is left to clean up.
+
+It reports and commits; it never destroys. It may edit documents under
+`~/docs/designs/<item>/`, add the `INDEX.md` row, and commit `~/docs` by explicit
+pathspec. Removing worktrees, deleting branches, pushing and anything touching a
+PR or an issue leave as paste-ready commands for you — including the
+`--cleanup` line above, filled in with this dispatch's slug and every one of its
+targets. A session cannot remove its own cwd anyway.
+
+Outside a dispatch worktree it says so and stops, rather than guessing which work
+item it is finalizing.
+
+No `trigger:` key in its frontmatter and no slash command: unlike `promptify`,
+this is not invoked by name. It fires from the description on the phrases that
+actually precede it — "finalize this work", "wrap up", "ready to close this
+session".
 
 ## Tests
 

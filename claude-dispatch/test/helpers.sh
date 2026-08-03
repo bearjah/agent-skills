@@ -19,6 +19,27 @@ assert_contains() {
   esac
 }
 
+# assert_file_has <file> <literal string>
+assert_file_has() {
+  local file="$1" needle="$2"
+  if [ ! -f "$file" ]; then
+    fail "missing file: $file"
+    return
+  fi
+  grep -qF -- "$needle" "$file" || fail "$file: expected to contain '$needle'"
+}
+
+# assert_max_lines <file> <max>
+assert_max_lines() {
+  local file="$1" max="$2" n
+  if [ ! -f "$file" ]; then
+    fail "missing file: $file"
+    return
+  fi
+  n="$(wc -l < "$file")"
+  [ "$n" -le "$max" ] || fail "$file: $n lines exceeds budget of $max"
+}
+
 # mkrepo <path> [branch] - create a git repo with one commit
 mkrepo() {
   local path="$1" branch="${2:-main}"
