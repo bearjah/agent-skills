@@ -29,6 +29,7 @@ INSTALLER="$ROOT/install.sh"
 STUB="$ACC_DIR/stub/claude"
 HERDR_STUB="$ROOT/test/stub/herdr"
 ACC_HERDR_ENV=""
+ACC_HERDR_WORKSPACE=""
 
 SOCK="dispatch-acc-$$"
 TMUX_ENV=""
@@ -69,6 +70,7 @@ CASES=(
   ac_17_install_symlinks_work
   ac_18_install_preserves_unrelated_tooling
   ac_19_herdr_backend_launches
+  ac_20_herdr_workspace_fallback_and_override
 )
 
 # --------------------------------------------------------------------------
@@ -296,13 +298,16 @@ _dispatch() {
     DRC=126
     return 0
   fi
-  # HERDR_ENV and DISPATCH_MUX are pinned rather than inherited. herdr exports
-  # HERDR_ENV into everything it starts, so a suite run from inside a herdr tab
-  # would otherwise pick the herdr backend and open real tabs in the operator's
-  # live session.
+  # HERDR_ENV, HERDR_WORKSPACE_ID and DISPATCH_MUX are pinned rather than
+  # inherited. herdr exports the first two into everything it starts, so a suite
+  # run from inside a herdr tab would otherwise pick the herdr backend and open
+  # real tabs in the operator's live session -- and, since the workspace is read
+  # from the environment too, would assert against whichever workspace the
+  # operator happened to be in rather than against a fixture.
   env \
     TMUX="$tmux_value" \
     HERDR_ENV="$ACC_HERDR_ENV" \
+    HERDR_WORKSPACE_ID="$ACC_HERDR_WORKSPACE" \
     DISPATCH_MUX="" \
     DISPATCH_HERDR_BIN="$HERDR_STUB" \
     DISPATCH_HERDR_STATE="$TC/herdr-state" \
@@ -316,17 +321,26 @@ _dispatch() {
 }
 
 run_dispatch() {
-  ACC_HERDR_ENV="" _dispatch "$TMUX_ENV" "$@"
+  ACC_HERDR_ENV="" ACC_HERDR_WORKSPACE="" _dispatch "$TMUX_ENV" "$@"
 }
 
 run_dispatch_without_tmux() {
-  ACC_HERDR_ENV="" _dispatch "" "$@"
+  ACC_HERDR_ENV="" ACC_HERDR_WORKSPACE="" _dispatch "" "$@"
 }
 
-# No TMUX, HERDR_ENV=1: the herdr backend, driven against the stub.
+# No TMUX, HERDR_ENV=1: the herdr backend, driven against the stub. The caller
+# is placed in workspace w9 so the tab-placement assertion has a fixture to
+# check rather than the operator's live workspace.
 run_dispatch_herdr() {
   mkdir -p "$TC/herdr-state"
-  ACC_HERDR_ENV=1 _dispatch "" "$@"
+  ACC_HERDR_ENV=1 ACC_HERDR_WORKSPACE="${ACC_HERDR_WORKSPACE:-w9}" _dispatch "" "$@"
+}
+
+# The herdr backend with no caller workspace to inherit -- dispatch run from a
+# shell herdr did not start.
+run_dispatch_herdr_no_workspace() {
+  mkdir -p "$TC/herdr-state"
+  ACC_HERDR_ENV=1 ACC_HERDR_WORKSPACE="" _dispatch "" "$@"
 }
 
 # run_capture <exe> [args...] - environment supplied via the RUN_ENV array
@@ -957,10 +971,47 @@ ac_19_herdr_backend_launches() {
   assert_eq "$(cat "$TC/herdr-state/tab-cwd" 2>/dev/null)" "$wt" "tab cwd"
   assert_eq "$(cat "$TC/herdr-state/tab-label" 2>/dev/null)" "primary-ac19" "tab label"
 
+  # ...and in the workspace the dispatch was fired FROM. Without this, herdr
+  # falls back to the workspace it is focused on, which is wherever the operator
+  # happens to be looking rather than where the work is.
+  assert_eq "$(cat "$TC/herdr-state/tab-workspace" 2>/dev/null)" "w9" \
+    "the tab must land in the caller's workspace, not herdr's focused one"
+
   # The report has to tell the operator how to reach it in herdr terms.
   assert_contains "$DOUT" "mux:" "report names the backend"
   assert_contains "$DOUT" "herdr tab focus" "report gives a herdr focus command"
   assert_not_contains "$DOUT" "tmux select-window" "report must not give tmux advice under herdr"
+}
+
+# --------------------------------------------------------------------------
+# AC-20: workspace placement degrades and overrides cleanly
+#
+# The workspace is inherited from the environment, so both ends of that need
+# pinning: dispatch run from a shell herdr did not start has no workspace to
+# inherit and must fall back to herdr's own choice rather than passing an empty
+# --workspace, and an operator who wants the tab somewhere else must be able to
+# say so without editing the launcher.
+# --------------------------------------------------------------------------
+ac_20_herdr_workspace_fallback_and_override() {
+  mkdir -p "$TC/code/org"
+  mk_std_repo "$TC/code/org/primary"
+  printf '# brief\n' >"$TC/brief.md"
+
+  # No HERDR_WORKSPACE_ID: no --workspace flag at all, and the dispatch still
+  # works. An empty string here would be a flag with no value, which the real
+  # client rejects.
+  run_dispatch_herdr_no_workspace --slug ac20a --brief "$TC/brief.md" --target primary
+  assert_zero "$DRC" "herdr dispatch with no caller workspace (stderr: $(flat "$DERR"))"
+  assert_eq "$(cat "$TC/herdr-state/tab-workspace" 2>/dev/null)" "" \
+    "with nothing to inherit, no workspace is named and herdr decides"
+
+  # DISPATCH_HERDR_WORKSPACE beats the inherited value.
+  ACC_HERDR_ENV=1 ACC_HERDR_WORKSPACE="w9" \
+    DISPATCH_HERDR_WORKSPACE="w3" _dispatch "" \
+    --slug ac20b --brief "$TC/brief.md" --target primary
+  assert_zero "$DRC" "herdr dispatch with an overridden workspace (stderr: $(flat "$DERR"))"
+  assert_eq "$(cat "$TC/herdr-state/tab-workspace" 2>/dev/null)" "w3" \
+    "DISPATCH_HERDR_WORKSPACE must beat the inherited HERDR_WORKSPACE_ID"
 }
 
 # --------------------------------------------------------------------------

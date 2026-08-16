@@ -121,8 +121,24 @@ launch_window_herdr() {
   shift 2
   local herdr="${DISPATCH_HERDR_BIN:-herdr}"
   local out pane_id tab_id cmd
+  local -a workspace_arg=()
 
-  out="$("$herdr" tab create --cwd "$cwd" --label "$name" --no-focus 2>&1)" || {
+  # Put the tab in the CALLER's workspace, not in whichever one herdr happens
+  # to be looking at. `tab create` has no workspace default of its own beyond
+  # the focused one, so a dispatch fired from one workspace while the operator
+  # had another on screen opens the tab over there -- six petal sessions landed
+  # in an unrelated workspace that way (2026-08-16). The tmux backend has no
+  # equivalent hole, which is why this went unnoticed.
+  #
+  # The answer is already in the environment: herdr exports HERDR_WORKSPACE_ID
+  # into every process it starts. DISPATCH_HERDR_WORKSPACE overrides it, and
+  # setting that to the empty string restores "let herdr decide" -- which is
+  # also what happens when dispatch runs from outside a herdr tab and there is
+  # no caller workspace to inherit.
+  local workspace="${DISPATCH_HERDR_WORKSPACE-${HERDR_WORKSPACE_ID:-}}"
+  [ -n "$workspace" ] && workspace_arg=(--workspace "$workspace")
+
+  out="$("$herdr" tab create ${workspace_arg[@]+"${workspace_arg[@]}"} --cwd "$cwd" --label "$name" --no-focus 2>&1)" || {
     printf 'dispatch: herdr tab create failed: %s\n' "$out" >&2
     return 1
   }

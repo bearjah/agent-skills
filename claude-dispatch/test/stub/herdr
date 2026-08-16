@@ -18,16 +18,19 @@ case "${1:-}/${2:-}" in
     shift 2
     cwd=""
     label=""
+    workspace=""
     while [ "$#" -gt 0 ]; do
       case "$1" in
-        --cwd)   cwd="${2:-}";   shift 2 ;;
-        --label) label="${2:-}"; shift 2 ;;
+        --cwd)       cwd="${2:-}";       shift 2 ;;
+        --label)     label="${2:-}";     shift 2 ;;
+        --workspace) workspace="${2:-}"; shift 2 ;;
         --no-focus|--focus) shift ;;
         *) shift ;;
       esac
     done
-    printf '%s\n' "$cwd"   >"$STATE/tab-cwd"
-    printf '%s\n' "$label" >"$STATE/tab-label"
+    printf '%s\n' "$cwd"       >"$STATE/tab-cwd"
+    printf '%s\n' "$label"     >"$STATE/tab-label"
+    printf '%s\n' "$workspace" >"$STATE/tab-workspace"
     printf '{"id":"cli:tab:create","result":{"root_pane":{"pane_id":"w1:p2","tab_id":"w1:t3","cwd":"%s"},"tab":{"tab_id":"w1:t3","label":"%s"},"type":"tab_created"}}\n' \
       "$cwd" "$label"
     ;;
