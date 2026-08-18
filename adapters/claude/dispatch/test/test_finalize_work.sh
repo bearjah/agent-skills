@@ -2,12 +2,13 @@
 # The finalize-work skill: its structure, its install link, and the locate
 # recipe it tells the reader to run.
 
-SKILL="finalize-work/SKILL.md"
+CORE_SKILL_DIR="$(cd "$ROOT/../../../skills/finalize-work" && pwd)"
+SKILL="$CORE_SKILL_DIR/SKILL.md"
 
 # The locate recipe is executable, so test it by running the exact lines the
 # skill publishes rather than a copy that could drift from them.
 locate_recipe() {
-  awk '/^# locate:/{f=1} f && /^```$/{exit} f' "$ROOT/$SKILL"
+  awk '/^# locate:/{f=1} f && /^```$/{exit} f' "$SKILL"
 }
 
 # run_locate <dir> - run the recipe in <dir> with HOME pinned to the sandbox.
@@ -27,16 +28,16 @@ mkdispatch() {
 }
 
 test_finalize_work_frontmatter() {
-  assert_eq "$(head -1 "$ROOT/$SKILL")" "---" "first line of SKILL.md"
-  assert_file_has "$ROOT/$SKILL" "name: finalize-work"
-  assert_file_has "$ROOT/$SKILL" "description:"
+  assert_eq "$(head -1 "$SKILL")" "---" "first line of SKILL.md"
+  assert_file_has "$SKILL" "name: finalize-work"
+  assert_file_has "$SKILL" "description:"
 }
 
 test_finalize_work_description_carries_the_real_trigger_phrases() {
   local p
   for p in "finalize this work" "wrap up" "ready to close this session" \
            "clean up before I close this"; do
-    assert_file_has "$ROOT/$SKILL" "$p"
+    assert_file_has "$SKILL" "$p"
   done
 }
 
@@ -44,7 +45,7 @@ test_finalize_work_has_all_three_phases() {
   local s
   for s in "## 0. Locate the dispatch" "## Phase 1" "## Phase 2" "## Phase 3" \
            "## Authority"; do
-    assert_file_has "$ROOT/$SKILL" "$s"
+    assert_file_has "$SKILL" "$s"
   done
 }
 
@@ -52,28 +53,28 @@ test_finalize_work_has_all_three_phases() {
 # declared the worktree disposable without naming the removal command, and runs
 # on a research-only work item never queried GitHub at all. Pin both.
 test_finalize_work_names_the_cleanup_command() {
-  assert_file_has "$ROOT/$SKILL" "dispatch-task.sh --cleanup <slug> --target <repo>"
+  assert_file_has "$SKILL" "dispatch-task.sh --cleanup <slug> --target <repo>"
 }
 
 test_finalize_work_requires_pr_state_from_gh() {
-  assert_file_has "$ROOT/$SKILL" "gh pr view"
-  assert_file_has "$ROOT/$SKILL" "gh pr list"
+  assert_file_has "$SKILL" "gh pr view"
+  assert_file_has "$SKILL" "gh pr list"
 }
 
 test_finalize_work_verdict_contract_has_every_slot() {
   local s
   for s in "committed:" "PR state:" "left undone:" "for you:" "verdict:"; do
-    assert_file_has "$ROOT/$SKILL" "$s"
+    assert_file_has "$SKILL" "$s"
   done
 }
 
 test_finalize_work_refuses_to_destroy() {
-  assert_file_has "$ROOT/$SKILL" "Delete or move any file"
-  assert_file_has "$ROOT/$SKILL" "Remove a worktree or delete a branch"
+  assert_file_has "$SKILL" "Delete or move any file"
+  assert_file_has "$SKILL" "Remove a worktree or delete a branch"
 }
 
 test_finalize_work_within_line_budget() {
-  assert_max_lines "$ROOT/$SKILL" 170
+  assert_max_lines "$SKILL" 170
 }
 
 # Both pinned from dry runs against real work items, where the first draft of the
@@ -81,14 +82,14 @@ test_finalize_work_within_line_budget() {
 # <path>` cannot reach an untracked path -- it exits non-zero on a pathspec that
 # matches nothing known to git.
 test_finalize_work_stages_before_the_pathspec_commit() {
-  assert_file_has "$ROOT/$SKILL" "git -C ~/docs add designs/<item>"
+  assert_file_has "$SKILL" "git -C ~/docs add designs/<item>"
 }
 
 # A cross-repo dispatch can hold a second worktree under a slug of its own, which
 # the single-slug glob in step 0 cannot see. One such worktree held an unpushed
 # commit that existed on no other machine.
 test_finalize_work_cross_checks_for_other_worktrees() {
-  assert_file_has "$ROOT/$SKILL" "[a-z0-9]+-wt-[a-z0-9-]+"
+  assert_file_has "$SKILL" "[a-z0-9]+-wt-[a-z0-9-]+"
 }
 
 test_locate_identifies_a_dispatch_worktree() {
@@ -148,7 +149,7 @@ test_install_links_the_skill() {
   HOME="$home" bash "$ROOT/install.sh" >/dev/null
   [ -L "$home/.claude/skills/finalize-work" ] || fail "skill symlink missing"
   assert_eq "$(readlink "$home/.claude/skills/finalize-work")" \
-    "$ROOT/finalize-work" "skill link target"
+    "$CORE_SKILL_DIR" "skill link target"
   assert_file_has "$home/.claude/skills/finalize-work/SKILL.md" "name: finalize-work"
 }
 

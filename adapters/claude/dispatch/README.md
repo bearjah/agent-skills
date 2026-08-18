@@ -1,4 +1,9 @@
-# claude-dispatch
+# Claude dispatch adapter
+
+This is the Claude Code adapter for the portable workflows in this repository.
+It is intentionally Claude-specific: it installs into `~/.claude`, invokes the
+Claude CLI, and provides the `/dispatch` command. The `finalize-work` skill it
+installs lives in `../../../skills/finalize-work`.
 
 Spawns a new window running an independent, pre-briefed session in an isolated
 git worktree. Works under either **tmux** or **herdr**.

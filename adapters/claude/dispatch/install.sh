@@ -3,6 +3,7 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$HERE/../../.." && pwd)"
 mkdir -p "$HOME/.claude/scripts" "$HOME/.claude/commands" "$HOME/.claude/skills" \
   "$HOME/docs/dispatch"
 
@@ -20,7 +21,7 @@ fi
 
 ln -sfn "$HERE/bin/dispatch-task.sh" "$HOME/.claude/scripts/dispatch-task.sh"
 ln -sfn "$HERE/commands/dispatch.md" "$HOME/.claude/commands/dispatch.md"
-ln -sfn "$HERE/finalize-work" "$SKILL_LINK"
+ln -sfn "$REPO_ROOT/skills/finalize-work" "$SKILL_LINK"
 
 printf 'installed:\n  %s\n  %s\n  %s\n' \
   "$HOME/.claude/scripts/dispatch-task.sh" \
