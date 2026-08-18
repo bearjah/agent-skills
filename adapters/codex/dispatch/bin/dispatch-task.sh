@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Dispatch a Codex session into an isolated worktree in a new tmux window.
+# Dispatch a Codex session into an isolated worktree in a new multiplexer window.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
@@ -7,6 +7,7 @@ REPO_ROOT="$(cd "$HERE/../../.." && pwd)"
 export DISPATCH_WORKTREE_ROOT="${DISPATCH_WORKTREE_ROOT:-$HOME/.codex/worktrees}"
 source "$REPO_ROOT/core/dispatch/lib/repos.sh"
 source "$REPO_ROOT/core/dispatch/lib/worktree.sh"
+source "$HERE/lib/launch.sh"
 
 usage() {
   cat <<'EOF'
@@ -54,7 +55,17 @@ if [ -n "$CLEANUP" ]; then
   exit "$rc"
 fi
 
-[ -n "${TMUX:-}" ] || die "Codex dispatch requires tmux"
+MUX="$(detect_mux)" \
+  || die "unsupported DISPATCH_MUX: ${DISPATCH_MUX:-} (want one of: tmux herdr)"
+case "$MUX" in
+  none)
+    die "no supported terminal multiplexer detected; run inside tmux or herdr, or set DISPATCH_MUX" ;;
+  herdr)
+    command -v "${DISPATCH_HERDR_BIN:-herdr}" >/dev/null 2>&1 \
+      || die "HERDR_ENV is set but ${DISPATCH_HERDR_BIN:-herdr} is not on PATH"
+    command -v python3 >/dev/null 2>&1 \
+      || die "the herdr backend needs python3 to read herdr's JSON replies" ;;
+esac
 command -v "${DISPATCH_CODEX_BIN:-codex}" >/dev/null 2>&1 || die "codex is not on PATH"
 [ -n "$SLUG" ] || die "--slug is required"
 [ -f "$BRIEF" ] || die "brief not found: $BRIEF"
@@ -82,7 +93,7 @@ argv=("${DISPATCH_CODEX_BIN:-codex}" --cd "$primary" --sandbox workspace-write -
 [ "${#add_dirs[@]}" -gt 0 ] && argv+=(--add-dir "${add_dirs[@]}")
 argv+=("$prompt")
 window_name="$(basename "${resolved_targets[0]}")-$SLUG"
-tmux new-window -d -n "$window_name" -c "$primary" -- "${argv[@]}"
+launch_window "$MUX" "$window_name" "$primary" "${argv[@]}"
 
-printf 'dispatched: %s\n  cwd: %s\n  worktrees: %s\n  switch: tmux select-window -t %s\n' \
-  "$window_name" "$primary" "${worktrees[*]}" "$window_name"
+printf 'dispatched: %s\n  mux: %s\n  cwd: %s\n  worktrees: %s\n  switch: %s\n' \
+  "$window_name" "$MUX" "$primary" "${worktrees[*]}" "$LAUNCH_SWITCH_HINT"

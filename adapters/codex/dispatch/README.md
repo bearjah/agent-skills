@@ -1,18 +1,17 @@
 # Codex dispatch adapter
 
-Installs the portable `promptify` and `finalize-work` skills into
-`~/.codex/skills` and provides `~/.codex/scripts/dispatch-task.sh`.
-
-The dispatcher creates isolated worktrees at
-`~/.codex/worktrees/<repo>/<slug>` and starts an interactive Codex session in
-a new tmux window. It accepts the same repository, brief, cleanup, base, and
-reference arguments as the shared workflow, plus Codex's
-`--approval-policy untrusted|on-request|never`.
-
-Install it with:
+Installs `~/.codex/scripts/dispatch-task.sh` and the portable `promptify` and
+`finalize-work` skills:
 
 ```bash
 ./install.sh
 ```
 
-Set `DISPATCH_WORKTREE_ROOT` to override the worktree root.
+Dispatch creates an isolated worktree under `~/.codex/worktrees`, then opens
+Codex in the current terminal environment: tmux when `$TMUX` is set, otherwise
+Herdr when `$HERDR_ENV=1`. Use `DISPATCH_MUX=tmux|herdr` to override detection
+and `DISPATCH_WORKTREE_ROOT` to override the worktree root.
+
+```bash
+dispatch-task.sh --slug TASK --brief BRIEF.md --target REPO
+```
