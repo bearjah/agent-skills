@@ -24,6 +24,7 @@ skill relies on.
 | `skills/promptify` | Rewrite an underspecified request into an executable prompt, then wait for approval. |
 | `skills/finalize-work` | Reconcile dispatched work, its evidence, documentation, and cleanup instructions before closing it. |
 | `adapters/claude/dispatch` | Claude Code command and CLI integration for dispatching isolated worktree sessions. |
+| `adapters/codex/dispatch` | Codex CLI and tmux integration for dispatching isolated worktree sessions. |
 
 ## Engine adapters
 
