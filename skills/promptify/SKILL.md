@@ -38,11 +38,14 @@ specific is a tax, not a service.
 Budget: **five lookups, hard stop.**
 
 - Resolve vague nouns to real paths with Glob/Grep.
-- Read `CLAUDE.md` for conventions, package manager, test command.
+- Read the repository's agent-instruction file (for example `AGENTS.md`,
+  `CLAUDE.md`, or an equivalent) for conventions, package manager, and test
+  command.
 
 A noun you cannot resolve becomes a stage-3 question. Never guess a path.
 
-No git repo or no `CLAUDE.md` is not an error — drop to text-only and continue.
+No git repo or no agent-instruction file is not an error — drop to text-only
+and continue.
 Run recon when resolving a noun would change what the optimized prompt says.
 Documenting a specific module needs the real path — run it. A strategy
 question ("is Postgres or DynamoDB the better fit for us") doesn't turn on
@@ -55,7 +58,8 @@ Ask only about gaps that **fork the work**: where a wrong guess sends the work i
 a materially different direction. Which repo, rewrite-vs-patch, audience — those
 fork. Tone, heading style, naming — those do not; assume them and disclose it.
 
-Use one `AskUserQuestion` call, multiple choice. If nothing forks, ask nothing.
+Use the host engine's question mechanism in one interaction, preferably with
+multiple-choice answers. If nothing forks, ask nothing.
 Never manufacture questions to look thorough.
 
 ### 4. Rewrite
@@ -127,7 +131,7 @@ Reduce initial load time of the dashboard at apps/web/dashboard/.
 
 <context>
 Slowness is on first paint, not interaction. No prior perf work in
-this module. Project conventions in CLAUDE.md: pnpm, vitest.
+this module. Project instructions: pnpm, vitest.
 </context>
 
 <constraints>
@@ -170,6 +174,6 @@ lookups`.
 | Prompt already precise | Bypass, run as-is, one-line note |
 | Trivial prompt | Bypass |
 | Prompt aimed at another tool | Rewrite and print only, never execute. Trigger on explicit phrasing only — "for ChatGPT", "to paste into", "for the API". Never infer it |
-| No git repo or no `CLAUDE.md` | Recon degrades to text-only, silently |
+| No git repo or no agent-instruction file | Recon degrades to text-only, silently |
 | Recon cannot resolve a noun | It becomes a gap-scan question |
 | Four or more unrelated asks | Flag the overload, offer a split, do not split unilaterally |

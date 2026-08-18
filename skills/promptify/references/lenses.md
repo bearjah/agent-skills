@@ -7,8 +7,8 @@ question to answer in the rewrite — drop any that the raw prompt already settl
 
 - **Files in scope.** Name real paths found during recon, not "the auth module".
 - **Don't-touch list.** Adjacent code, other apps, generated files, migrations.
-- **Verify command.** The project's actual test or build command, from
-  `CLAUDE.md` or the package manifest.
+- **Verify command.** The project's actual test or build command, from its
+  agent-instruction file or package manifest.
 - **Follow existing patterns.** Point at a sibling file that models the style.
 - **Plan-first or just-do.** Big blast radius means plan first; a one-file fix
   does not.

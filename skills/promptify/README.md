@@ -3,7 +3,14 @@
 Rewrites a raw prompt using prompt-engineering best practices, shows the
 rewrite, and runs it on approval.
 
-## Install
+## Portability
+
+`SKILL.md` and `references/` are the portable workflow. The files in
+`commands/` and `install.sh` are the current Claude Code adapter: they link the
+skill into `~/.claude` and register Claude's `/p` command. Other engines can
+consume `SKILL.md` directly or provide an adapter under `../../adapters/`.
+
+## Install for Claude Code
 
 ```bash
 ./install.sh
