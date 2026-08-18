@@ -13,7 +13,11 @@ Herdr when `$HERDR_ENV=1`. Use `DISPATCH_MUX=tmux|herdr` to override detection
 and `DISPATCH_WORKTREE_ROOT` to override the worktree root. Durable documents
 go under `${AGENT_DOCS_ROOT:-$HOME/docs}` and that directory is automatically
 made writable in the spawned session. Sessions start with high reasoning and
-Vim composer mode.
+Vim composer mode. They also default to unrestricted command access with no
+approval prompts. Override that per session with
+`--sandbox workspace-write --approval-policy on-request`, or set
+`DISPATCH_CODEX_SANDBOX` and
+`DISPATCH_CODEX_APPROVAL_POLICY`.
 
 ```bash
 dispatch-task.sh --slug TASK --brief BRIEF.md --target REPO

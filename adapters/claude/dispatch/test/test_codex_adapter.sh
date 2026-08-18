@@ -55,5 +55,50 @@ test_codex_dispatch_uses_configured_docs_root() {
   assert_contains "${argv[*]}" "$SANDBOX/docs"
   assert_contains "${argv[*]}" "$SANDBOX/docs/dispatch/review.md"
   assert_contains "${argv[*]}" "never in a target repository's docs directory"
+  assert_contains "${argv[*]}" "--sandbox danger-full-access"
+  assert_contains "${argv[*]}" "--ask-for-approval never"
   assert_contains "${argv[*]}" "tui.vim_mode_default=true"
+}
+
+test_codex_dispatch_allows_permission_overrides() {
+  mkdir -p "$SANDBOX/herdr"
+  mkrepo "$SANDBOX/repo" main
+  mkremote "$SANDBOX/repo"
+  printf 'review brief\n' > "$SANDBOX/review.md"
+
+  TMUX='' HERDR_ENV=1 DISPATCH_MUX=herdr \
+  DISPATCH_HERDR_BIN="$ROOT/test/stub/herdr" \
+  DISPATCH_HERDR_STATE="$SANDBOX/herdr" \
+  DISPATCH_CODEX_BIN="$ROOT/test/stub/claude" \
+  DISPATCH_WORKTREE_ROOT="$SANDBOX/worktrees" \
+  AGENT_DOCS_ROOT="$SANDBOX/docs" \
+    "$CODEX_ROOT/bin/dispatch-task.sh" \
+      --slug codex-permissions --brief "$SANDBOX/review.md" \
+      --target "$SANDBOX/repo" \
+      --sandbox workspace-write --approval-policy on-request >/dev/null \
+    || { fail "Codex dispatch exited non-zero"; return; }
+
+  local wt="$SANDBOX/worktrees/repo/codex-permissions" argv=()
+  mapfile -t argv < "$wt/.dispatch-argv"
+  assert_contains "${argv[*]}" "--sandbox workspace-write"
+  assert_contains "${argv[*]}" "--ask-for-approval on-request"
+}
+
+test_codex_dispatch_rejects_invalid_sandbox_mode() {
+  mkrepo "$SANDBOX/repo" main
+  mkremote "$SANDBOX/repo"
+  printf 'review brief\n' > "$SANDBOX/review.md"
+  local out
+
+  out="$(TMUX=fake DISPATCH_CODEX_BIN=true \
+    DISPATCH_WORKTREE_ROOT="$SANDBOX/worktrees" \
+    AGENT_DOCS_ROOT="$SANDBOX/docs" \
+    "$CODEX_ROOT/bin/dispatch-task.sh" \
+      --slug invalid-sandbox --brief "$SANDBOX/review.md" \
+      --target "$SANDBOX/repo" --sandbox nonsense 2>&1)" \
+    && fail "expected failure for invalid sandbox mode"
+
+  assert_contains "$out" "invalid sandbox mode"
+  [ ! -d "$SANDBOX/worktrees/repo/invalid-sandbox" ] \
+    || fail "worktree created despite invalid sandbox mode"
 }

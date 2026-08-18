@@ -15,14 +15,15 @@ usage() {
 Usage:
   dispatch-task.sh --slug SLUG --brief PATH --target REPO [--target REPO ...]
                    [--ref REPO ...] [--base REF] [--skill NAME]
-                   [--approval-policy POLICY]
+                   [--approval-policy POLICY] [--sandbox MODE]
   dispatch-task.sh --cleanup SLUG --target REPO [--target REPO ...] [--base REF] [--force]
 EOF
 }
 
 die() { printf 'dispatch: %s\n' "$1" >&2; exit 1; }
 SLUG="" BRIEF="" BASE="" SKILL="" CLEANUP="" FORCE=0
-APPROVAL_POLICY="on-request"
+APPROVAL_POLICY="${DISPATCH_CODEX_APPROVAL_POLICY:-never}"
+SANDBOX_MODE="${DISPATCH_CODEX_SANDBOX:-danger-full-access}"
 TARGETS=() REFS=()
 
 while [ "$#" -gt 0 ]; do
@@ -34,6 +35,7 @@ while [ "$#" -gt 0 ]; do
     --base) BASE="${2:?--base needs a value}"; shift 2 ;;
     --skill) SKILL="${2:?--skill needs a value}"; shift 2 ;;
     --approval-policy) APPROVAL_POLICY="${2:?--approval-policy needs a value}"; shift 2 ;;
+    --sandbox) SANDBOX_MODE="${2:?--sandbox needs a value}"; shift 2 ;;
     --cleanup) CLEANUP="${2:?--cleanup needs a value}"; shift 2 ;;
     --force) FORCE=1; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -72,6 +74,7 @@ command -v "${DISPATCH_CODEX_BIN:-codex}" >/dev/null 2>&1 || die "codex is not o
 [ -f "$BRIEF" ] || die "brief not found: $BRIEF"
 [ "${#resolved_targets[@]}" -gt 0 ] || die "at least one --target is required"
 case "$APPROVAL_POLICY" in untrusted|on-request|never) ;; *) die "invalid approval policy: $APPROVAL_POLICY" ;; esac
+case "$SANDBOX_MODE" in read-only|workspace-write|danger-full-access) ;; *) die "invalid sandbox mode: $SANDBOX_MODE" ;; esac
 
 docs_root="$(agent_docs_root)" || die "could not resolve AGENT_DOCS_ROOT"
 ensure_agent_docs_root "$docs_root" || die "could not create docs root: $docs_root"
@@ -94,7 +97,7 @@ add_dirs=("$docs_root" "${worktrees[@]:1}")
 for ref in ${resolved_refs+"${resolved_refs[@]}"}; do add_dirs+=("$ref"); done
 prompt="Read $BRIEF and follow it. Store every durable brief, design, review, and research artifact under $docs_root, never in a target repository's docs directory."
 [ -n "$SKILL" ] && prompt="Use the $SKILL workflow if it is available. $prompt"
-argv=(env "AGENT_DOCS_ROOT=$docs_root" "${DISPATCH_CODEX_BIN:-codex}" --cd "$primary" --sandbox workspace-write --ask-for-approval "$APPROVAL_POLICY" -c 'model_reasoning_effort="high"' -c 'tui.vim_mode_default=true')
+argv=(env "AGENT_DOCS_ROOT=$docs_root" "${DISPATCH_CODEX_BIN:-codex}" --cd "$primary" --sandbox "$SANDBOX_MODE" --ask-for-approval "$APPROVAL_POLICY" -c 'model_reasoning_effort="high"' -c 'tui.vim_mode_default=true')
 [ "${#add_dirs[@]}" -gt 0 ] && argv+=(--add-dir "${add_dirs[@]}")
 argv+=("$prompt")
 window_name="$(basename "${resolved_targets[0]}")-$SLUG"
