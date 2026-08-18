@@ -2,7 +2,8 @@
 
 # dispatch <args...> - run the entrypoint with tmux present, capturing output
 dispatch() {
-  DISPATCH_WORKTREE_ROOT="$SANDBOX/worktrees" "$ROOT/bin/dispatch-task.sh" "$@" 2>&1
+  AGENT_DOCS_ROOT="$SANDBOX/docs" DISPATCH_WORKTREE_ROOT="$SANDBOX/worktrees" \
+    "$ROOT/bin/dispatch-task.sh" "$@" 2>&1
 }
 
 # HERDR_ENV has to be cleared alongside TMUX: herdr exports it into every

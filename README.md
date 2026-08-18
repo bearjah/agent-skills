@@ -18,3 +18,6 @@ adapters/codex/dispatch/install.sh
 ```
 
 Adapter-specific usage is documented in each adapter directory.
+
+Set `AGENT_DOCS_ROOT` to move durable briefs, designs, reviews, and research from
+the default `~/docs` root.

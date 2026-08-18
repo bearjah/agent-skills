@@ -5,26 +5,25 @@ description: "Use when a dispatched work item is finished and its session is abo
 
 # finalize-work
 
-Close the loop `/dispatch` opened. A dispatched session writes documents to
-`~/docs/designs/YYYY-MM-DD-<slug>/` and is then abandoned: nothing reconciles them
+Close the loop `/dispatch` opened. A dispatched session writes documents beneath
+`${AGENT_DOCS_ROOT:-$HOME/docs}` and is then abandoned: nothing reconciles them
 against what shipped, and the worktree lives forever. Run this last, inside the
 finishing worktree — after `superpowers:finishing-a-development-branch` has decided
 *how to integrate* the code. This is the paperwork, not that decision.
-
 ## Authority
-
 | You may | You may not |
 |---|---|
-| Edit documents under `~/docs/designs/<item>/` | Delete or move any file |
+| Edit documents under the configured docs root | Delete or move any file |
 | Add or update this item's `INDEX.md` row | Remove a worktree or delete a branch |
-| Commit `~/docs` by explicit pathspec | Push anything, anywhere |
+| Commit the configured docs root by explicit pathspec | Push anything, anywhere |
 | Read GitHub via `gh pr view` / `gh pr list` | Open, close, comment on or edit a PR or issue |
-
 Everything on the right leaves as a paste-ready command for the human, in Phase 2.
-
 ## 0. Locate the dispatch
 ```bash
 # locate: run from anywhere inside the finishing worktree
+agent_docs_root="${AGENT_DOCS_ROOT:-$HOME/docs}"
+case "$agent_docs_root" in '~') agent_docs_root="$HOME" ;; '~/'*) agent_docs_root="$HOME/${agent_docs_root#\~/}" ;; esac
+case "$agent_docs_root" in /*) ;; *) printf 'AGENT_DOCS_ROOT must be absolute: %s\n' "$agent_docs_root"; exit 1 ;; esac
 top=$(git rev-parse --show-toplevel) || exit 1
 branch=$(git rev-parse --abbrev-ref HEAD)
 root=""
@@ -38,35 +37,36 @@ relative=${top#"$root"/}
 repo=${relative%%/*}
 slug=${relative#*/}
 case "$slug" in *'/'*|'') printf 'not a dispatch worktree: %s (branch %s)\n' "$top" "$branch"; exit 1 ;; esac
-printf 'repo=%s\nslug=%s\nbranch=%s\n' "$repo" "$slug" "$branch"
+printf 'repo=%s\nslug=%s\nbranch=%s\ndocs_root=%s\n' "$repo" "$slug" "$branch" "$agent_docs_root"
 find "$root" -mindepth 2 -maxdepth 2 -type d -name "$slug"   # every target this dispatch created
 ```
 Exit 1 means **stop**: report what you found — a plain checkout, on which branch —
 and do nothing else. There is no master-session mode; never finalize a work item you
 are not sitting in, and never infer one from the shell's cwd, which drifts.
-
 `branch` is often **not** `dispatch/<slug>` — sessions rename before opening a PR.
 Normal, and it changes Phase 2: `--cleanup` deletes `dispatch/<slug>`, which is then
-not the branch holding the work. Find the documents with
-`ls -d ~/docs/designs/*-"$slug"`; no match, or several, is a question for the human.
+not the branch holding the work. Find the item under
+`$agent_docs_root/designs/` or `$agent_docs_root/reviews/`; no match, or several,
+is a question for the human. Briefs live in `dispatch/` and raw evidence in
+`research/`; neither is the work item's canonical document folder.
 
 The `find` command finds only worktrees carrying **this** slug. A session that made another by
 hand — a second repo, under a slug of its own — leaves one the glob cannot see, and
 its commits may exist on no other machine. Cross-check against what the documents
 say, and treat every hit as another target with its own cleanup command:
-`grep -ohE 'worktrees/[a-z0-9._-]+/[a-z0-9-]+' ~/docs/designs/<item>/*.md | sort -u`
+`grep -ohE 'worktrees/[a-z0-9._-]+/[a-z0-9-]+' "$agent_docs_root"/<category>/<item>/*.md | sort -u`
 
 ## Phase 1 — reconcile the documents
 Make one todo per numbered item. Work them in order.
 
 1. **Read every document's status line.** `INDEX.md` quotes it **verbatim**, so a
    document with none becomes `not recorded` there. Fix the document, not the quote.
-   `grep -n '^\*\*Status:\*\*' ~/docs/designs/<item>/*.md`
+   `grep -n '^\*\*Status:\*\*' "$agent_docs_root"/<category>/<item>/*.md`
 
 2. **Get PR state from `gh`, not from the documents.**
    ```bash
    grep -ohE '#[0-9]{3,6}|https://github\.com/[^ )]+/pull/[0-9]+' \
-     ~/docs/designs/<item>/*.md | sort -u          # what the documents claim
+     "$agent_docs_root"/<category>/<item>/*.md | sort -u # what the documents claim
    gh pr view <n> --repo <owner>/<repo> \
      --json number,url,state,mergeCommit,mergedAt   # what is true
    gh pr list --repo <owner>/<repo> --head "$branch" --state all \
@@ -96,17 +96,17 @@ Make one todo per numbered item. Work them in order.
    > **Status:** Research complete. Findings only — no fix designed, nothing changed.
 
 7. **Add or update this item's `INDEX.md` row, additively.** Shape:
-   `| [<item>](designs/<item>/) | <docs> | <status, quoted from the document> |`.
-   Other sessions are editing `~/docs` right now: touch only your row, never reflow
+   `| [<item>](<category>/<item>/) | <docs> | <status, quoted from the document> |`.
+   Other sessions may be editing the docs root: touch only your row, never reflow
    a table, never reformat a neighbour.
 
-8. **Commit `~/docs` by pathspec.** `git -C ~/docs status --short` will show other
+8. **Commit the docs root by pathspec.** `git -C "$agent_docs_root" status --short` will show other
    sessions' staged files; a bare `git commit` or an `add -A` takes them.
    ```bash
-   git -C ~/docs add designs/<item>         # a new item's folder is untracked, and a
-                                            # pathspec commit cannot reach untracked paths
-   git -C ~/docs diff HEAD -- INDEX.md      # confirm your row is the only change
-   git -C ~/docs commit -m "<subject>" -- designs/<item> INDEX.md
+   git -C "$agent_docs_root" add <category>/<item>    # a new folder is untracked, and a
+                                                       # pathspec commit cannot reach it
+   git -C "$agent_docs_root" diff HEAD -- INDEX.md    # confirm only your row changed
+   git -C "$agent_docs_root" commit -m "<subject>" -- <category>/<item> INDEX.md
    ```
    A pathspec commit ignores the rest of the index but commits the **working
    tree** — so if `INDEX.md` carries another session's in-flight edit, leave it
@@ -118,7 +118,7 @@ Make one todo per numbered item. Work them in order.
 
 Every item is a command the human runs. Emit them filled in, never as a template.
 
-- **Raw research filed under `designs/`.** `find ~/docs/designs/<item> -type f ! -name '*.md'`
+- **Raw research filed with the item.** `find "$agent_docs_root"/<category>/<item> -type f ! -name '*.md'`
   — command output, JSON corpora, TSVs, transcripts belong in `research/<item>/`.
   First check whether a document says the copy is deliberate: a corpus kept because
   its source artifacts expire is not a misfile. Name any `.md` that is not a role

@@ -4,8 +4,11 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$HERE/../../.." && pwd)"
+source "$REPO_ROOT/core/dispatch/lib/docs.sh"
+DOCS_ROOT="$(agent_docs_root)"
 mkdir -p "$HOME/.claude/scripts" "$HOME/.claude/commands" "$HOME/.claude/skills" \
-  "$HOME/.claude/worktrees" "$HOME/docs/dispatch"
+  "$HOME/.claude/worktrees"
+ensure_agent_docs_root "$DOCS_ROOT"
 
 SKILL_LINK="$HOME/.claude/skills/finalize-work"
 

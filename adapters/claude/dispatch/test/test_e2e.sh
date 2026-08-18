@@ -18,6 +18,7 @@ _e2e_body() {
   DISPATCH_CLAUDE_BIN="$ROOT/test/stub/claude" \
   DISPATCH_SEARCH_GLOB="$SANDBOX/code/*" \
   DISPATCH_WORKTREE_ROOT="$SANDBOX/worktrees" \
+  AGENT_DOCS_ROOT="$SANDBOX/docs" \
     "$ROOT/bin/dispatch-task.sh" \
       --slug e2e --brief "$SANDBOX/brief.md" \
       --target primary --target second --ref refonly >/dev/null \
@@ -32,7 +33,7 @@ _e2e_body() {
 
   mapfile -t argv < "$wt/.dispatch-argv"
   assert_contains "${argv[0]}" "superpowers:brainstorming"
-  assert_contains "${argv[0]}" "$SANDBOX/brief.md"
+  assert_contains "${argv[0]}" "$SANDBOX/docs/dispatch/brief.md"
   assert_eq "${argv[1]}" "--session-id" "session flag position"
   assert_eq "${argv[3]}" "--permission-mode" "permission mode follows the session id"
   assert_eq "${argv[4]}" "auto" "dispatched sessions default to auto"
@@ -48,6 +49,8 @@ _e2e_body() {
   local rest="${argv[*]:$((add_idx + 1))}"
   assert_contains "$rest" "$SANDBOX/worktrees/second/e2e"
   assert_contains "$rest" "$SANDBOX/code/org/refonly"
+  assert_contains "$rest" "$SANDBOX/docs"
+  [ -f "$SANDBOX/docs/dispatch/brief.md" ] || fail "brief was not stored in docs root"
   [ ! -d "$SANDBOX/worktrees/refonly/e2e" ] || fail "ref repo got a worktree"
 }
 

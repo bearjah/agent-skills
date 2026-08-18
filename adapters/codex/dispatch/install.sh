@@ -5,8 +5,11 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$HERE/../../.." && pwd)"
 CODEX_DIR="$HOME/.codex"
+source "$REPO_ROOT/core/dispatch/lib/docs.sh"
+DOCS_ROOT="$(agent_docs_root)"
 
-mkdir -p "$CODEX_DIR/skills" "$CODEX_DIR/scripts" "$CODEX_DIR/worktrees" "$HOME/docs/dispatch"
+mkdir -p "$CODEX_DIR/skills" "$CODEX_DIR/scripts" "$CODEX_DIR/worktrees"
+ensure_agent_docs_root "$DOCS_ROOT"
 
 for skill in promptify finalize-work; do
   link="$CODEX_DIR/skills/$skill"

@@ -27,6 +27,11 @@ test_skill_points_at_lenses() {
   assert_file_has "$ROOT/SKILL.md" "references/lenses.md"
 }
 
+test_skill_routes_durable_documents_to_the_configured_root() {
+  assert_file_has "$ROOT/SKILL.md" 'AGENT_DOCS_ROOT:-$HOME/docs'
+  assert_file_has "$ROOT/SKILL.md" "Never default"
+}
+
 test_skill_within_line_budget() {
   assert_max_lines "$ROOT/SKILL.md" 200
 }

@@ -88,7 +88,13 @@ test_finalize_work_within_line_budget() {
 # <path>` cannot reach an untracked path -- it exits non-zero on a pathspec that
 # matches nothing known to git.
 test_finalize_work_stages_before_the_pathspec_commit() {
-  assert_file_has "$SKILL" "git -C ~/docs add designs/<item>"
+  assert_file_has "$SKILL" 'git -C "$agent_docs_root" add <category>/<item>'
+}
+
+test_finalize_work_uses_the_configured_docs_root() {
+  assert_file_has "$SKILL" 'AGENT_DOCS_ROOT:-$HOME/docs'
+  assert_file_has "$SKILL" '$agent_docs_root/designs/'
+  assert_file_has "$SKILL" '$agent_docs_root/reviews/'
 }
 
 # A cross-repo dispatch can hold a second worktree under a slug of its own, which

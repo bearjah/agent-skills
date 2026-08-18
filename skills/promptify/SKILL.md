@@ -68,6 +68,11 @@ Apply the universal core, the anti-patterns to strip, and the guardrails
 below, then read `references/lenses.md` and apply **only** the section for
 the kind you detected.
 
+For dispatch, design, review, or research prompts that create durable documents,
+resolve `${AGENT_DOCS_ROOT:-$HOME/docs}` and name an absolute destination beneath
+its `dispatch/`, `designs/`, `reviews/`, or `research/` directory. Never default
+to a target repository's `docs/` directory.
+
 ### 5. Present and wait
 
 If the prompt is aimed at another tool, print the rewrite and stop there —

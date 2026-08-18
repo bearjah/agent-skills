@@ -36,7 +36,7 @@ Single repo:
 
 ```bash
 dispatch-task.sh --slug fix-auth \
-  --brief ~/docs/dispatch/2026-07-27-fix-auth.md \
+  --brief "${AGENT_DOCS_ROOT:-$HOME/docs}/dispatch/2026-07-27-fix-auth.md" \
   --target minimos
 ```
 
@@ -44,7 +44,7 @@ Cross-repo — the change lands in `minimos`, `minictl` is read for reference:
 
 ```bash
 dispatch-task.sh --slug actions-contract \
-  --brief ~/docs/dispatch/2026-07-27-actions-contract.md \
+  --brief "${AGENT_DOCS_ROOT:-$HOME/docs}/dispatch/2026-07-27-actions-contract.md" \
   --target minimos --ref minictl --ref actions
 ```
 
@@ -121,8 +121,8 @@ still true against what `gh` says actually merged, did anything deferred go
 unrecorded, and what is left to clean up.
 
 It reports and commits; it never destroys. It may edit documents under
-`~/docs/designs/<item>/`, add the `INDEX.md` row, and commit `~/docs` by explicit
-pathspec. Removing worktrees, deleting branches, pushing and anything touching a
+`${AGENT_DOCS_ROOT:-$HOME/docs}`, add the `INDEX.md` row, and commit that docs
+repository by explicit pathspec. Removing worktrees, deleting branches, pushing and anything touching a
 PR or an issue leave as paste-ready commands for you — including the
 `--cleanup` line above, filled in with this dispatch's slug and every one of its
 targets. A session cannot remove its own cwd anyway.

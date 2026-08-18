@@ -7,6 +7,7 @@ REPO_ROOT="$(cd "$HERE/../../.." && pwd)"
 export DISPATCH_WORKTREE_ROOT="${DISPATCH_WORKTREE_ROOT:-$HOME/.codex/worktrees}"
 source "$REPO_ROOT/core/dispatch/lib/repos.sh"
 source "$REPO_ROOT/core/dispatch/lib/worktree.sh"
+source "$REPO_ROOT/core/dispatch/lib/docs.sh"
 source "$HERE/lib/launch.sh"
 
 usage() {
@@ -72,11 +73,15 @@ command -v "${DISPATCH_CODEX_BIN:-codex}" >/dev/null 2>&1 || die "codex is not o
 [ "${#resolved_targets[@]}" -gt 0 ] || die "at least one --target is required"
 case "$APPROVAL_POLICY" in untrusted|on-request|never) ;; *) die "invalid approval policy: $APPROVAL_POLICY" ;; esac
 
+docs_root="$(agent_docs_root)" || die "could not resolve AGENT_DOCS_ROOT"
+ensure_agent_docs_root "$docs_root" || die "could not create docs root: $docs_root"
+
 for repo in "${resolved_targets[@]}"; do
   [ ! -e "$(worktree_path "$repo" "$SLUG")" ] || die "worktree path already exists"
   git -C "$repo" rev-parse --verify --quiet "refs/heads/dispatch/$SLUG" >/dev/null 2>&1 && die "branch dispatch/$SLUG already exists in $repo"
   base_for "$repo" >/dev/null
 done
+BRIEF="$(stage_dispatch_brief "$docs_root" "$BRIEF")" || die "could not store dispatch brief under $docs_root/dispatch"
 
 worktrees=()
 for repo in "${resolved_targets[@]}"; do
@@ -85,11 +90,11 @@ for repo in "${resolved_targets[@]}"; do
 done
 
 primary="${worktrees[0]}"
-add_dirs=("${worktrees[@]:1}")
+add_dirs=("$docs_root" "${worktrees[@]:1}")
 for ref in ${resolved_refs+"${resolved_refs[@]}"}; do add_dirs+=("$ref"); done
-prompt="Read $BRIEF and follow it."
+prompt="Read $BRIEF and follow it. Store every durable brief, design, review, and research artifact under $docs_root, never in a target repository's docs directory."
 [ -n "$SKILL" ] && prompt="Use the $SKILL workflow if it is available. $prompt"
-argv=("${DISPATCH_CODEX_BIN:-codex}" --cd "$primary" --sandbox workspace-write --ask-for-approval "$APPROVAL_POLICY" -c 'model_reasoning_effort="high"')
+argv=(env "AGENT_DOCS_ROOT=$docs_root" "${DISPATCH_CODEX_BIN:-codex}" --cd "$primary" --sandbox workspace-write --ask-for-approval "$APPROVAL_POLICY" -c 'model_reasoning_effort="high"')
 [ "${#add_dirs[@]}" -gt 0 ] && argv+=(--add-dir "${add_dirs[@]}")
 argv+=("$prompt")
 window_name="$(basename "${resolved_targets[0]}")-$SLUG"

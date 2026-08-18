@@ -10,7 +10,8 @@ The new session opens as a tmux window or a herdr tab, whichever you are in.
 The backend is detected from `$TMUX` / `$HERDR_ENV`, so there is nothing to
 pass; the report's `switch:` line tells you how to reach it.
 
-Before running this, write the briefing to `~/docs/dispatch/YYYY-MM-DD-<slug>.md`
+Resolve `docs_root=${AGENT_DOCS_ROOT:-$HOME/docs}`. Before running this, write
+the briefing to `$docs_root/dispatch/YYYY-MM-DD-<slug>.md`
 with these sections:
 
 1. **Task** — the intent, in a few sentences.
@@ -19,7 +20,8 @@ with these sections:
    sibling's `CLAUDE.md`, so name any sibling `CLAUDE.md` that must be read.
 3. **Context already gathered** — files, prior art, links.
 4. **Constraints and non-goals.**
-5. **Deliverable** — the spec path, `~/docs/designs/YYYY-MM-DD-<slug>-design.md`.
+5. **Deliverable** — an absolute path under `$docs_root`: use `designs/` for
+   specs and plans, `reviews/` for reviews, and `research/` for raw evidence.
 6. **Dispatch metadata** — base ref and date.
 
 The spawned session runs with `--permission-mode auto` by default, since nobody
@@ -29,6 +31,9 @@ read-only research.
 Pick the entry skill by task kind: `superpowers:brainstorming` to build or change
 behavior, `superpowers:systematic-debugging` for a bug, `superpowers:writing-plans`
 when a spec already exists.
+
+Never place a durable brief, design, review, or research artifact in a target
+repository's `docs/` directory.
 
 Then run:
 

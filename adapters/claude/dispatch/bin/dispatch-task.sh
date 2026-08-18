@@ -13,6 +13,8 @@ export DISPATCH_WORKTREE_ROOT="${DISPATCH_WORKTREE_ROOT:-$HOME/.claude/worktrees
 source "$REPO_ROOT/core/dispatch/lib/repos.sh"
 # shellcheck source=../../../core/dispatch/lib/worktree.sh
 source "$REPO_ROOT/core/dispatch/lib/worktree.sh"
+# shellcheck source=../../../core/dispatch/lib/docs.sh
+source "$REPO_ROOT/core/dispatch/lib/docs.sh"
 # shellcheck source=lib/launch.sh
 source "$HERE/lib/launch.sh"
 
@@ -124,6 +126,9 @@ if [ -n "$PERMISSION_MODE" ]; then
   esac
 fi
 
+docs_root="$(agent_docs_root)" || die "could not resolve AGENT_DOCS_ROOT"
+ensure_agent_docs_root "$docs_root" || die "could not create docs root: $docs_root"
+
 for repo in "${resolved_targets[@]}"; do
   wt="$(worktree_path "$repo" "$SLUG")"
   [ ! -e "$wt" ] || die "worktree path already exists: $wt"
@@ -132,6 +137,7 @@ for repo in "${resolved_targets[@]}"; do
   fi
   base_for "$repo" >/dev/null
 done
+BRIEF="$(stage_dispatch_brief "$docs_root" "$BRIEF")" || die "could not store dispatch brief under $docs_root/dispatch"
 
 # --- create worktrees ---
 target_worktrees=()
@@ -142,7 +148,7 @@ for repo in "${resolved_targets[@]}"; do
 done
 
 primary_wt="${target_worktrees[0]}"
-add_dirs=("${target_worktrees[@]:1}")
+add_dirs=("$docs_root" "${target_worktrees[@]:1}")
 for r in ${resolved_refs+"${resolved_refs[@]}"}; do
   add_dirs+=("$r")
 done
@@ -150,9 +156,10 @@ done
 # --- launch ---
 session_id="$(uuidgen)"
 window_name="$(basename "${resolved_targets[0]}")-$SLUG"
-prompt="/$SKILL Read $BRIEF — it is your briefing. Follow it."
+prompt="/$SKILL Read $BRIEF — it is your briefing. Follow it. Store every durable brief, design, review, and research artifact under $docs_root, never in a target repository's docs directory."
 
 build_claude_argv "$prompt" "$session_id" "$PERMISSION_MODE" ${add_dirs+"${add_dirs[@]}"}
+CLAUDE_ARGV=(env "AGENT_DOCS_ROOT=$docs_root" "${CLAUDE_ARGV[@]}")
 launch_window "$MUX" "$window_name" "$primary_wt" "${CLAUDE_ARGV[@]}"
 
 project_slug="$(printf '%s' "$primary_wt" | tr '/.' '--')"
