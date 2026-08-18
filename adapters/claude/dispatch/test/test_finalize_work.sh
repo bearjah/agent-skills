@@ -155,14 +155,19 @@ test_locate_lists_every_target_of_the_dispatch() {
 }
 
 test_install_links_the_skill() {
-  local home
+  local home git_commit_skill_dir
   home="$SANDBOX/home"
+  git_commit_skill_dir="$(cd "$ROOT/../../../skills/git-commit" && pwd)"
   mkdir -p "$home"
   HOME="$home" bash "$ROOT/install.sh" >/dev/null
   [ -L "$home/.claude/skills/finalize-work" ] || fail "skill symlink missing"
   assert_eq "$(readlink "$home/.claude/skills/finalize-work")" \
     "$CORE_SKILL_DIR" "skill link target"
   assert_file_has "$home/.claude/skills/finalize-work/SKILL.md" "name: finalize-work"
+  [ -L "$home/.claude/skills/git-commit" ] || fail "git-commit symlink missing"
+  assert_eq "$(readlink "$home/.claude/skills/git-commit")" \
+    "$git_commit_skill_dir" "git-commit link target"
+  assert_file_has "$home/.claude/skills/git-commit/SKILL.md" "name: git-commit"
 }
 
 test_install_reports_the_skill_link() {
@@ -171,6 +176,7 @@ test_install_reports_the_skill_link() {
   mkdir -p "$home"
   out="$(HOME="$home" bash "$ROOT/install.sh")"
   assert_contains "$out" "$home/.claude/skills/finalize-work"
+  assert_contains "$out" "$home/.claude/skills/git-commit"
 }
 
 # `ln -sfn` would nest the link inside a real directory, leaving the skill
@@ -186,4 +192,17 @@ test_install_refuses_a_real_directory_at_the_skill_path() {
     || fail "installer nested the link inside the pre-existing directory"
   [ ! -e "$home/.claude/scripts/dispatch-task.sh" ] \
     || fail "a rejected install still linked the dispatch script"
+}
+
+test_install_refuses_a_real_directory_at_git_commit_path() {
+  local home rc
+  home="$SANDBOX/home"
+  mkdir -p "$home/.claude/skills/git-commit"
+  rc=0
+  HOME="$home" bash "$ROOT/install.sh" >/dev/null 2>&1 || rc=$?
+  [ "$rc" -ne 0 ] || fail "expected non-zero exit for a real git-commit dir"
+  [ ! -e "$home/.claude/scripts/dispatch-task.sh" ] \
+    || fail "a rejected install still linked the dispatch script"
+  [ ! -e "$home/.claude/skills/finalize-work" ] \
+    || fail "a rejected install still linked an earlier skill"
 }

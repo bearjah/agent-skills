@@ -6,6 +6,7 @@ Reusable workflows for Claude Code and Codex.
 
 - `promptify`: turn a rough request into an executable prompt.
 - `finalize-work`: verify and hand off dispatched work.
+- `git-commit`: create focused commits with useful history.
 - `dispatch`: open an isolated worktree session in tmux or Herdr.
 
 ## Install

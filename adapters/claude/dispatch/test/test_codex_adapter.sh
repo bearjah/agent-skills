@@ -2,6 +2,36 @@
 
 CODEX_ROOT="$(cd "$ROOT/../../codex/dispatch" && pwd)"
 
+test_codex_install_links_git_commit_skill() {
+  local home skill_dir
+  home="$SANDBOX/home"
+  skill_dir="$(cd "$ROOT/../../../skills/git-commit" && pwd)"
+  mkdir -p "$home"
+
+  HOME="$home" AGENT_DOCS_ROOT="$SANDBOX/docs" \
+    bash "$CODEX_ROOT/install.sh" >/dev/null
+
+  [ -L "$home/.codex/skills/git-commit" ] || fail "Codex skill symlink missing"
+  assert_eq "$(readlink "$home/.codex/skills/git-commit")" \
+    "$skill_dir" "Codex git-commit link target"
+}
+
+test_codex_install_refuses_a_real_directory_at_git_commit_path() {
+  local home rc
+  home="$SANDBOX/home"
+  mkdir -p "$home/.codex/skills/git-commit"
+  rc=0
+
+  HOME="$home" AGENT_DOCS_ROOT="$SANDBOX/docs" \
+    bash "$CODEX_ROOT/install.sh" >/dev/null 2>&1 || rc=$?
+
+  [ "$rc" -ne 0 ] || fail "expected Codex install to reject a real skill dir"
+  [ ! -e "$home/.codex/skills/promptify" ] \
+    || fail "a rejected Codex install still linked an earlier skill"
+  [ ! -e "$home/.codex/scripts/dispatch-task.sh" ] \
+    || fail "a rejected Codex install still linked the dispatch script"
+}
+
 test_codex_dispatch_uses_configured_docs_root() {
   mkdir -p "$SANDBOX/herdr"
   mkrepo "$SANDBOX/repo" main
