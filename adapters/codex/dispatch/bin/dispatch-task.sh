@@ -89,7 +89,7 @@ add_dirs=("${worktrees[@]:1}")
 for ref in ${resolved_refs+"${resolved_refs[@]}"}; do add_dirs+=("$ref"); done
 prompt="Read $BRIEF and follow it."
 [ -n "$SKILL" ] && prompt="Use the $SKILL workflow if it is available. $prompt"
-argv=("${DISPATCH_CODEX_BIN:-codex}" --cd "$primary" --sandbox workspace-write --ask-for-approval "$APPROVAL_POLICY")
+argv=("${DISPATCH_CODEX_BIN:-codex}" --cd "$primary" --sandbox workspace-write --ask-for-approval "$APPROVAL_POLICY" -c 'model_reasoning_effort="high"')
 [ "${#add_dirs[@]}" -gt 0 ] && argv+=(--add-dir "${add_dirs[@]}")
 argv+=("$prompt")
 window_name="$(basename "${resolved_targets[0]}")-$SLUG"
