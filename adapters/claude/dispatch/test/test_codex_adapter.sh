@@ -55,8 +55,12 @@ test_codex_dispatch_uses_configured_docs_root() {
   assert_contains "${argv[*]}" "$SANDBOX/docs"
   assert_contains "${argv[*]}" "$SANDBOX/docs/dispatch/review.md"
   assert_contains "${argv[*]}" "never in a target repository's docs directory"
-  assert_contains "${argv[*]}" "--sandbox danger-full-access"
-  assert_contains "${argv[*]}" "--ask-for-approval never"
+  case " ${argv[*]} " in
+    *" --sandbox "*) fail "Codex dispatch overrode the configured sandbox by default" ;;
+  esac
+  case " ${argv[*]} " in
+    *" --ask-for-approval "*) fail "Codex dispatch overrode the configured approval policy by default" ;;
+  esac
   assert_contains "${argv[*]}" "tui.vim_mode_default=true"
 }
 
@@ -82,6 +86,31 @@ test_codex_dispatch_allows_permission_overrides() {
   mapfile -t argv < "$wt/.dispatch-argv"
   assert_contains "${argv[*]}" "--sandbox workspace-write"
   assert_contains "${argv[*]}" "--ask-for-approval on-request"
+}
+
+test_codex_dispatch_allows_environment_permission_overrides() {
+  mkdir -p "$SANDBOX/herdr"
+  mkrepo "$SANDBOX/repo" main
+  mkremote "$SANDBOX/repo"
+  printf 'review brief\n' > "$SANDBOX/review.md"
+
+  TMUX='' HERDR_ENV=1 DISPATCH_MUX=herdr \
+  DISPATCH_HERDR_BIN="$ROOT/test/stub/herdr" \
+  DISPATCH_HERDR_STATE="$SANDBOX/herdr" \
+  DISPATCH_CODEX_BIN="$ROOT/test/stub/claude" \
+  DISPATCH_CODEX_SANDBOX=read-only \
+  DISPATCH_CODEX_APPROVAL_POLICY=untrusted \
+  DISPATCH_WORKTREE_ROOT="$SANDBOX/worktrees" \
+  AGENT_DOCS_ROOT="$SANDBOX/docs" \
+    "$CODEX_ROOT/bin/dispatch-task.sh" \
+      --slug codex-env-permissions --brief "$SANDBOX/review.md" \
+      --target "$SANDBOX/repo" >/dev/null \
+    || { fail "Codex dispatch exited non-zero"; return; }
+
+  local wt="$SANDBOX/worktrees/repo/codex-env-permissions" argv=()
+  mapfile -t argv < "$wt/.dispatch-argv"
+  assert_contains "${argv[*]}" "--sandbox read-only"
+  assert_contains "${argv[*]}" "--ask-for-approval untrusted"
 }
 
 test_codex_dispatch_rejects_invalid_sandbox_mode() {

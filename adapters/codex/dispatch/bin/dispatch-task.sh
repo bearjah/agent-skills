@@ -22,8 +22,8 @@ EOF
 
 die() { printf 'dispatch: %s\n' "$1" >&2; exit 1; }
 SLUG="" BRIEF="" BASE="" SKILL="" CLEANUP="" FORCE=0
-APPROVAL_POLICY="${DISPATCH_CODEX_APPROVAL_POLICY:-never}"
-SANDBOX_MODE="${DISPATCH_CODEX_SANDBOX:-danger-full-access}"
+APPROVAL_POLICY="${DISPATCH_CODEX_APPROVAL_POLICY:-}"
+SANDBOX_MODE="${DISPATCH_CODEX_SANDBOX:-}"
 TARGETS=() REFS=()
 
 while [ "$#" -gt 0 ]; do
@@ -73,8 +73,8 @@ command -v "${DISPATCH_CODEX_BIN:-codex}" >/dev/null 2>&1 || die "codex is not o
 [ -n "$SLUG" ] || die "--slug is required"
 [ -f "$BRIEF" ] || die "brief not found: $BRIEF"
 [ "${#resolved_targets[@]}" -gt 0 ] || die "at least one --target is required"
-case "$APPROVAL_POLICY" in untrusted|on-request|never) ;; *) die "invalid approval policy: $APPROVAL_POLICY" ;; esac
-case "$SANDBOX_MODE" in read-only|workspace-write|danger-full-access) ;; *) die "invalid sandbox mode: $SANDBOX_MODE" ;; esac
+case "$APPROVAL_POLICY" in ""|untrusted|on-request|never) ;; *) die "invalid approval policy: $APPROVAL_POLICY" ;; esac
+case "$SANDBOX_MODE" in ""|read-only|workspace-write|danger-full-access) ;; *) die "invalid sandbox mode: $SANDBOX_MODE" ;; esac
 
 docs_root="$(agent_docs_root)" || die "could not resolve AGENT_DOCS_ROOT"
 ensure_agent_docs_root "$docs_root" || die "could not create docs root: $docs_root"
@@ -97,7 +97,9 @@ add_dirs=("$docs_root" "${worktrees[@]:1}")
 for ref in ${resolved_refs+"${resolved_refs[@]}"}; do add_dirs+=("$ref"); done
 prompt="Read $BRIEF and follow it. Store every durable brief, design, review, and research artifact under $docs_root, never in a target repository's docs directory."
 [ -n "$SKILL" ] && prompt="Use the $SKILL workflow if it is available. $prompt"
-argv=(env "AGENT_DOCS_ROOT=$docs_root" "${DISPATCH_CODEX_BIN:-codex}" --cd "$primary" --sandbox "$SANDBOX_MODE" --ask-for-approval "$APPROVAL_POLICY" -c 'model_reasoning_effort="high"' -c 'tui.vim_mode_default=true')
+argv=(env "AGENT_DOCS_ROOT=$docs_root" "${DISPATCH_CODEX_BIN:-codex}" --cd "$primary" -c 'model_reasoning_effort="high"' -c 'tui.vim_mode_default=true')
+[ -n "$SANDBOX_MODE" ] && argv+=(--sandbox "$SANDBOX_MODE")
+[ -n "$APPROVAL_POLICY" ] && argv+=(--ask-for-approval "$APPROVAL_POLICY")
 [ "${#add_dirs[@]}" -gt 0 ] && argv+=(--add-dir "${add_dirs[@]}")
 argv+=("$prompt")
 window_name="$(basename "${resolved_targets[0]}")-$SLUG"
