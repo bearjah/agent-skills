@@ -5,7 +5,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$HERE/../../.." && pwd)"
 mkdir -p "$HOME/.claude/scripts" "$HOME/.claude/commands" "$HOME/.claude/skills" \
-  "$HOME/docs/dispatch"
+  "$HOME/.claude/worktrees" "$HOME/docs/dispatch"
 
 SKILL_LINK="$HOME/.claude/skills/finalize-work"
 

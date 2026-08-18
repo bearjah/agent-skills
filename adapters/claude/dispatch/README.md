@@ -18,8 +18,17 @@ everything you learn back comes from the artifact it writes.
 ./install.sh
 ```
 
-Symlinks `bin/dispatch-task.sh`, `commands/dispatch.md` and the `finalize-work/`
-skill into `~/.claude/`, making `/dispatch` and the skill available in sessions.
+Symlinks `bin/dispatch-task.sh`, `commands/dispatch.md` and the portable
+`finalize-work` skill into `~/.claude/`, making `/dispatch` and the skill
+available in sessions.
+
+## Worktrees
+
+Claude dispatches create worktrees at
+`~/.claude/worktrees/<repo>/<slug>`, rather than beside a source checkout. Set
+`DISPATCH_WORKTREE_ROOT` to use a different location. The shared lifecycle is
+implemented in `../../../core/dispatch`; this adapter only provides Claude CLI
+and command integration.
 
 ## Usage
 
@@ -105,7 +114,7 @@ Refuses a worktree with uncommitted changes or unmerged commits unless
 
 ## Closing the loop: the `finalize-work` skill
 
-`finalize-work/SKILL.md` is the counterpart to a dispatch. It runs **inside the
+`skills/finalize-work/SKILL.md` is the counterpart to a dispatch. It runs **inside the
 finishing worktree**, immediately before the session is closed, and it reconciles
 the paperwork a dispatch leaves behind: are the documents' `**Status:**` lines
 still true against what `gh` says actually merged, did anything deferred go

@@ -1,14 +1,23 @@
 #!/usr/bin/env bash
-# Worktree lifecycle. Layout is sibling-style: <parent>/<repo>-wt-<slug>.
+# Worktree lifecycle shared by engine adapters.
+#
+# Adapters select DISPATCH_WORKTREE_ROOT. The portable default keeps temporary
+# checkouts outside repositories at ~/.agent-skills/worktrees. The Claude
+# adapter overrides it with ~/.claude/worktrees.
+
+worktree_root() {
+  printf '%s\n' "${DISPATCH_WORKTREE_ROOT:-$HOME/.agent-skills/worktrees}"
+}
 
 worktree_path() {
   local repo="$1" slug="$2"
-  printf '%s/%s-wt-%s\n' "$(dirname "$repo")" "$(basename "$repo")" "$slug"
+  printf '%s/%s/%s\n' "$(worktree_root)" "$(basename "$repo")" "$slug"
 }
 
 create_worktree() {
   local repo="$1" slug="$2" base="$3" wt
   wt="$(worktree_path "$repo" "$slug")"
+  mkdir -p "$(dirname "$wt")"
   git -C "$repo" worktree add -b "dispatch/$slug" "$wt" "$base" >/dev/null 2>&1 || {
     printf 'dispatch: failed to create worktree %s from %s\n' "$wt" "$base" >&2
     return 1

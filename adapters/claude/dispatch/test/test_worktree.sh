@@ -1,18 +1,24 @@
 #!/usr/bin/env bash
-# shellcheck source=lib/worktree.sh
-source "$ROOT/lib/worktree.sh"
+# shellcheck source=../../../core/dispatch/lib/worktree.sh
+source "$ROOT/../../../core/dispatch/lib/worktree.sh"
 
-test_worktree_path_is_sibling_of_repo() {
+use_test_worktree_root() {
+  export DISPATCH_WORKTREE_ROOT="$SANDBOX/worktrees"
+}
+
+test_worktree_path_uses_the_configured_root() {
+  use_test_worktree_root
   assert_eq "$(worktree_path /home/u/code/org/minimos fixauth)" \
-            "/home/u/code/org/minimos-wt-fixauth" "sibling layout"
+            "$SANDBOX/worktrees/minimos/fixauth" "configured layout"
 }
 
 test_create_worktree_uses_base_and_branch() {
   mkrepo "$SANDBOX/r" main
   mkremote "$SANDBOX/r"
+  use_test_worktree_root
   local wt
   wt="$(create_worktree "$SANDBOX/r" fixauth origin/main)"
-  assert_eq "$wt" "$SANDBOX/r-wt-fixauth" "worktree path"
+  assert_eq "$wt" "$SANDBOX/worktrees/r/fixauth" "worktree path"
   assert_eq "$(git -C "$wt" branch --show-current)" "dispatch/fixauth" "branch name"
   assert_eq "$(git -C "$wt" rev-parse HEAD)" \
             "$(git -C "$SANDBOX/r" rev-parse origin/main)" "based on origin/main"
@@ -21,6 +27,7 @@ test_create_worktree_uses_base_and_branch() {
 test_worktree_is_dirty_detects_changes() {
   mkrepo "$SANDBOX/r" main
   mkremote "$SANDBOX/r"
+  use_test_worktree_root
   local wt
   wt="$(create_worktree "$SANDBOX/r" d origin/main)"
   worktree_is_dirty "$wt" && fail "clean worktree reported dirty"
@@ -31,6 +38,7 @@ test_worktree_is_dirty_detects_changes() {
 test_worktree_has_unmerged_detects_commits() {
   mkrepo "$SANDBOX/r" main
   mkremote "$SANDBOX/r"
+  use_test_worktree_root
   local wt
   wt="$(create_worktree "$SANDBOX/r" u origin/main)"
   worktree_has_unmerged "$wt" origin/main && fail "fresh worktree reported unmerged"
@@ -42,9 +50,10 @@ test_worktree_has_unmerged_detects_commits() {
 test_remove_worktree_deletes_dir_and_branch() {
   mkrepo "$SANDBOX/r" main
   mkremote "$SANDBOX/r"
+  use_test_worktree_root
   create_worktree "$SANDBOX/r" gone origin/main >/dev/null
   remove_worktree "$SANDBOX/r" gone origin/main 0 || fail "remove failed"
-  [ ! -d "$SANDBOX/r-wt-gone" ] || fail "worktree dir still present"
+  [ ! -d "$SANDBOX/worktrees/r/gone" ] || fail "worktree dir still present"
   git -C "$SANDBOX/r" rev-parse --verify --quiet refs/heads/dispatch/gone >/dev/null 2>&1 \
     && fail "branch still present"
 }

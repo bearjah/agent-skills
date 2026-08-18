@@ -19,12 +19,18 @@ run_locate() {
   (cd "$dir" && HOME="$SANDBOX" bash -c "$recipe" 2>&1)
 }
 
+worktree_dir() {
+  printf '%s/.claude/worktrees/%s/%s\n' "$SANDBOX" "$1" "$2"
+}
+
 # mkdispatch <org> <repo> <slug> - a repo plus a dispatch worktree beside it
 mkdispatch() {
-  local org="$1" repo="$2" slug="$3" root="$SANDBOX/code/$1/$2"
+  local org="$1" repo="$2" slug="$3" root="$SANDBOX/code/$1/$2" wt
+  wt="$(worktree_dir "$repo" "$slug")"
   mkdir -p "$SANDBOX/code/$org"
+  mkdir -p "$(dirname "$wt")"
   mkrepo "$root" main
-  git -C "$root" worktree add -q -b "dispatch/$slug" "$root-wt-$slug"
+  git -C "$root" worktree add -q -b "dispatch/$slug" "$wt"
 }
 
 test_finalize_work_frontmatter() {
@@ -89,25 +95,25 @@ test_finalize_work_stages_before_the_pathspec_commit() {
 # the single-slug glob in step 0 cannot see. One such worktree held an unpushed
 # commit that existed on no other machine.
 test_finalize_work_cross_checks_for_other_worktrees() {
-  assert_file_has "$SKILL" "[a-z0-9]+-wt-[a-z0-9-]+"
+  assert_file_has "$SKILL" "worktrees/[a-z0-9._-]+/[a-z0-9-]+"
 }
 
 test_locate_identifies_a_dispatch_worktree() {
   mkdispatch org r slugone
   local out
-  out="$(run_locate "$SANDBOX/code/org/r-wt-slugone")" \
+  out="$(run_locate "$(worktree_dir r slugone)")" \
     || fail "locate refused a real dispatch worktree"
   assert_contains "$out" "repo=r"
   assert_contains "$out" "slug=slugone"
   assert_contains "$out" "branch=dispatch/slugone"
-  assert_contains "$out" "$SANDBOX/code/org/r-wt-slugone"
+  assert_contains "$out" "$(worktree_dir r slugone)"
 }
 
 test_locate_works_from_a_subdirectory() {
   mkdispatch org r slugone
-  mkdir -p "$SANDBOX/code/org/r-wt-slugone/deep/nested"
+  mkdir -p "$(worktree_dir r slugone)/deep/nested"
   local out
-  out="$(run_locate "$SANDBOX/code/org/r-wt-slugone/deep/nested")" \
+  out="$(run_locate "$(worktree_dir r slugone)/deep/nested")" \
     || fail "locate refused a subdirectory of a dispatch worktree"
   assert_contains "$out" "slug=slugone"
 }
@@ -124,9 +130,9 @@ test_locate_refuses_a_plain_checkout() {
 # the branch name -- has to be what identifies the worktree.
 test_locate_survives_a_renamed_branch() {
   mkdispatch org r slugone
-  git -C "$SANDBOX/code/org/r-wt-slugone" checkout -q -b renamed-for-the-pr
+  git -C "$(worktree_dir r slugone)" checkout -q -b renamed-for-the-pr
   local out
-  out="$(run_locate "$SANDBOX/code/org/r-wt-slugone")" \
+  out="$(run_locate "$(worktree_dir r slugone)")" \
     || fail "locate refused a worktree whose branch was renamed"
   assert_contains "$out" "slug=slugone"
   assert_contains "$out" "branch=renamed-for-the-pr"
@@ -137,9 +143,9 @@ test_locate_lists_every_target_of_the_dispatch() {
   mkdispatch org r shared
   mkdispatch org2 other shared
   local out
-  out="$(run_locate "$SANDBOX/code/org/r-wt-shared")" || fail "locate failed"
-  assert_contains "$out" "$SANDBOX/code/org/r-wt-shared"
-  assert_contains "$out" "$SANDBOX/code/org2/other-wt-shared"
+  out="$(run_locate "$(worktree_dir r shared)")" || fail "locate failed"
+  assert_contains "$out" "$(worktree_dir r shared)"
+  assert_contains "$out" "$(worktree_dir other shared)"
 }
 
 test_install_links_the_skill() {

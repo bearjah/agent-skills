@@ -23,20 +23,24 @@ finishing worktree — after `superpowers:finishing-a-development-branch` has de
 Everything on the right leaves as a paste-ready command for the human, in Phase 2.
 
 ## 0. Locate the dispatch
-
 ```bash
 # locate: run from anywhere inside the finishing worktree
 top=$(git rev-parse --show-toplevel) || exit 1
-name=${top##*/}
 branch=$(git rev-parse --abbrev-ref HEAD)
-case $name in
-  *-wt-*) repo=${name%%-wt-*}; slug=${name#*-wt-} ;;
-  *) printf 'not a dispatch worktree: %s (branch %s)\n' "$top" "$branch"; exit 1 ;;
-esac
+root=""
+for candidate in "${DISPATCH_WORKTREE_ROOT:-}" "$HOME/.claude/worktrees" \
+                 "$HOME/.codex/worktrees" "$HOME/.agent-skills/worktrees"; do
+  [ -n "$candidate" ] || continue
+  case "$top" in "$candidate"/*/*) root="$candidate"; break ;; esac
+done
+[ -n "$root" ] || { printf 'not a dispatch worktree: %s (branch %s)\n' "$top" "$branch"; exit 1; }
+relative=${top#"$root"/}
+repo=${relative%%/*}
+slug=${relative#*/}
+case "$slug" in *'/'*|'') printf 'not a dispatch worktree: %s (branch %s)\n' "$top" "$branch"; exit 1 ;; esac
 printf 'repo=%s\nslug=%s\nbranch=%s\n' "$repo" "$slug" "$branch"
-ls -d "$HOME"/code/*/*-wt-"$slug"   # every target this dispatch created
+find "$root" -mindepth 2 -maxdepth 2 -type d -name "$slug"   # every target this dispatch created
 ```
-
 Exit 1 means **stop**: report what you found — a plain checkout, on which branch —
 and do nothing else. There is no master-session mode; never finalize a work item you
 are not sitting in, and never infer one from the shell's cwd, which drifts.
@@ -46,14 +50,13 @@ Normal, and it changes Phase 2: `--cleanup` deletes `dispatch/<slug>`, which is 
 not the branch holding the work. Find the documents with
 `ls -d ~/docs/designs/*-"$slug"`; no match, or several, is a question for the human.
 
-The glob finds only worktrees carrying **this** slug. A session that made another by
+The `find` command finds only worktrees carrying **this** slug. A session that made another by
 hand — a second repo, under a slug of its own — leaves one the glob cannot see, and
 its commits may exist on no other machine. Cross-check against what the documents
 say, and treat every hit as another target with its own cleanup command:
-`grep -ohE '[a-z0-9]+-wt-[a-z0-9-]+' ~/docs/designs/<item>/*.md | sort -u`
+`grep -ohE 'worktrees/[a-z0-9._-]+/[a-z0-9-]+' ~/docs/designs/<item>/*.md | sort -u`
 
 ## Phase 1 — reconcile the documents
-
 Make one todo per numbered item. Work them in order.
 
 1. **Read every document's status line.** `INDEX.md` quotes it **verbatim**, so a
@@ -125,13 +128,13 @@ Every item is a command the human runs. Emit them filled in, never as a template
 - **The session's scratchpad.** Analysis that exists only in `/tmp` dies with it, and
   a background loop outlives the window — reparented to `systemd`, closing tmux does
   not stop it. Check for scratch files newer than the documents they should have
-  landed in, and run `pgrep -af "$slug"`: your own `claude` matches, nothing else
-  should.
+  landed in, and run `pgrep -af "$slug"`: the adapter's own process matches,
+  nothing else should.
 - **The worktree and its branch.**
   ```bash
-  ~/.claude/scripts/dispatch-task.sh --cleanup <slug> --target <repo> [--target <repo> ...]
+  dispatch-task.sh --cleanup <slug> --target <repo> [--target <repo> ...]
   ```
-  One `--target` per line step 0's `ls -d` printed — the slug, never a path. Give
+  One `--target` per directory step 0's `find` printed — the slug, never a path. Give
   its preconditions too: it **refuses** a worktree with uncommitted changes or
   commits not in the base, and `--force` discards them. If the branch was renamed,
   say that cleanup deletes `dispatch/<slug>` and leaves the renamed branch behind.

@@ -6,10 +6,13 @@ set -euo pipefail
 # ~/.claude/scripts/dispatch-task.sh, and bash reports BASH_SOURCE as the link,
 # not its target, so the libraries would be looked for beside the link.
 HERE="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
-# shellcheck source=lib/repos.sh
-source "$HERE/lib/repos.sh"
-# shellcheck source=lib/worktree.sh
-source "$HERE/lib/worktree.sh"
+REPO_ROOT="$(cd "$HERE/../../.." && pwd)"
+# The shared lifecycle is portable; this adapter supplies Claude's state root.
+export DISPATCH_WORKTREE_ROOT="${DISPATCH_WORKTREE_ROOT:-$HOME/.claude/worktrees}"
+# shellcheck source=../../../core/dispatch/lib/repos.sh
+source "$REPO_ROOT/core/dispatch/lib/repos.sh"
+# shellcheck source=../../../core/dispatch/lib/worktree.sh
+source "$REPO_ROOT/core/dispatch/lib/worktree.sh"
 # shellcheck source=lib/launch.sh
 source "$HERE/lib/launch.sh"
 

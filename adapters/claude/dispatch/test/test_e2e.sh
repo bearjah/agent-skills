@@ -17,12 +17,13 @@ _e2e_body() {
   TMUX="$tmux_env" \
   DISPATCH_CLAUDE_BIN="$ROOT/test/stub/claude" \
   DISPATCH_SEARCH_GLOB="$SANDBOX/code/*" \
+  DISPATCH_WORKTREE_ROOT="$SANDBOX/worktrees" \
     "$ROOT/bin/dispatch-task.sh" \
       --slug e2e --brief "$SANDBOX/brief.md" \
       --target primary --target second --ref refonly >/dev/null \
     || { fail "dispatch exited non-zero"; return; }
 
-  local wt="$SANDBOX/code/org/primary-wt-e2e" argv=() i
+  local wt="$SANDBOX/worktrees/primary/e2e" argv=() i
   for ((i = 0; i < 100; i++)); do
     [ -s "$wt/.dispatch-argv" ] && break
     sleep 0.1
@@ -45,9 +46,9 @@ _e2e_body() {
   [ "$add_idx" -gt 2 ] || fail "--add-dir must follow the prompt and session id"
 
   local rest="${argv[*]:$((add_idx + 1))}"
-  assert_contains "$rest" "$SANDBOX/code/org/second-wt-e2e"
+  assert_contains "$rest" "$SANDBOX/worktrees/second/e2e"
   assert_contains "$rest" "$SANDBOX/code/org/refonly"
-  [ ! -d "$SANDBOX/code/org/refonly-wt-e2e" ] || fail "ref repo got a worktree"
+  [ ! -d "$SANDBOX/worktrees/refonly/e2e" ] || fail "ref repo got a worktree"
 }
 
 test_e2e_dispatch_launches_with_correct_argv_and_cwd() {

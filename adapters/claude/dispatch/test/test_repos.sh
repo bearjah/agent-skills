@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# shellcheck source=lib/repos.sh
-source "$ROOT/lib/repos.sh"
+# shellcheck source=../../../core/dispatch/lib/repos.sh
+source "$ROOT/../../../core/dispatch/lib/repos.sh"
 
 test_resolve_repo_finds_by_name() {
   mkdir -p "$SANDBOX/code/org"
