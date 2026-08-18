@@ -25,4 +25,5 @@ test_codex_dispatch_uses_configured_docs_root() {
   assert_contains "${argv[*]}" "$SANDBOX/docs"
   assert_contains "${argv[*]}" "$SANDBOX/docs/dispatch/review.md"
   assert_contains "${argv[*]}" "never in a target repository's docs directory"
+  assert_contains "${argv[*]}" "tui.vim_mode_default=true"
 }

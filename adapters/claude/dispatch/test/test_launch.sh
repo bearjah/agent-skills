@@ -10,19 +10,22 @@ test_build_claude_argv_puts_prompt_before_add_dir() {
   assert_eq "${CLAUDE_ARGV[3]}" "abc-123"          "session id"
   assert_eq "${CLAUDE_ARGV[4]}" "--permission-mode" "permission flag"
   assert_eq "${CLAUDE_ARGV[5]}" "auto"             "permission mode"
-  assert_eq "${CLAUDE_ARGV[6]}" "--add-dir"        "add-dir must come last"
-  assert_eq "${CLAUDE_ARGV[7]}" "/a"               "first dir"
-  assert_eq "${CLAUDE_ARGV[8]}" "/b"               "second dir"
+  assert_eq "${CLAUDE_ARGV[6]}" "--settings"       "settings flag"
+  assert_eq "${CLAUDE_ARGV[7]}" '{"editorMode":"vim"}' "Vim editor mode"
+  assert_eq "${CLAUDE_ARGV[8]}" "--add-dir"        "add-dir must come last"
+  assert_eq "${CLAUDE_ARGV[9]}" "/a"               "first dir"
+  assert_eq "${CLAUDE_ARGV[10]}" "/b"              "second dir"
 }
 
 test_build_claude_argv_omits_add_dir_when_empty() {
   DISPATCH_CLAUDE_BIN=claude build_claude_argv "prompt" "id" auto
-  assert_eq "${#CLAUDE_ARGV[@]}" "6" "no trailing --add-dir"
+  assert_eq "${#CLAUDE_ARGV[@]}" "8" "no trailing --add-dir"
 }
 
 test_build_claude_argv_omits_permission_mode_when_empty() {
   DISPATCH_CLAUDE_BIN=claude build_claude_argv "prompt" "id" "" /a
-  assert_eq "${CLAUDE_ARGV[4]}" "--add-dir" "no --permission-mode when unset"
+  assert_eq "${CLAUDE_ARGV[4]}" "--settings" "Vim settings remain when permission mode is unset"
+  assert_eq "${CLAUDE_ARGV[6]}" "--add-dir" "no --permission-mode when unset"
 }
 
 test_build_claude_argv_honours_binary_override() {

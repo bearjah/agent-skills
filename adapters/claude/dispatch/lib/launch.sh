@@ -17,6 +17,7 @@ build_claude_argv() {
   if [ -n "$permission_mode" ]; then
     CLAUDE_ARGV+=(--permission-mode "$permission_mode")
   fi
+  CLAUDE_ARGV+=(--settings '{"editorMode":"vim"}')
   if [ "$#" -gt 0 ]; then
     CLAUDE_ARGV+=(--add-dir "$@")
   fi
