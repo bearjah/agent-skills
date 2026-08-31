@@ -14,6 +14,7 @@ test_codex_install_links_git_commit_skill() {
   [ -L "$home/.codex/skills/git-commit" ] || fail "Codex skill symlink missing"
   assert_eq "$(readlink "$home/.codex/skills/git-commit")" \
     "$skill_dir" "Codex git-commit link target"
+  [ ! -e "$home/.codex/worktrees" ] || fail "Codex install created a global worktree root"
 }
 
 test_codex_install_refuses_a_real_directory_at_git_commit_path() {
@@ -30,6 +31,30 @@ test_codex_install_refuses_a_real_directory_at_git_commit_path() {
     || fail "a rejected Codex install still linked an earlier skill"
   [ ! -e "$home/.codex/scripts/dispatch-task.sh" ] \
     || fail "a rejected Codex install still linked the dispatch script"
+}
+
+test_codex_dispatch_defaults_worktree_root_to_pwd() {
+  mkdir -p "$SANDBOX/invoker" "$SANDBOX/herdr"
+  mkrepo "$SANDBOX/repo" main
+  mkremote "$SANDBOX/repo"
+  printf 'review brief\n' > "$SANDBOX/review.md"
+
+  (
+    cd "$SANDBOX/invoker" || exit 1
+    unset DISPATCH_WORKTREE_ROOT
+    TMUX='' HERDR_ENV=1 DISPATCH_MUX=herdr \
+    DISPATCH_HERDR_BIN="$ROOT/test/stub/herdr" \
+    DISPATCH_HERDR_STATE="$SANDBOX/herdr" \
+    DISPATCH_CODEX_BIN="$ROOT/test/stub/claude" \
+    AGENT_DOCS_ROOT="$SANDBOX/docs" \
+      "$CODEX_ROOT/bin/dispatch-task.sh" \
+        --slug local-root --brief "$SANDBOX/review.md" \
+        --target "$SANDBOX/repo" >/dev/null
+  ) || { fail "Codex dispatch with the default worktree root exited non-zero"; return; }
+
+  local wt="$SANDBOX/invoker/.codex/worktrees/repo/local-root"
+  [ -d "$wt" ] || { fail "Codex worktree was not created under PWD/.codex/worktrees"; return; }
+  assert_eq "$(cat "$SANDBOX/herdr/tab-cwd")" "$wt" "Codex dispatched cwd"
 }
 
 test_codex_dispatch_uses_configured_docs_root() {

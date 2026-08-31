@@ -4,7 +4,9 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
 REPO_ROOT="$(cd "$HERE/../../.." && pwd)"
-export DISPATCH_WORKTREE_ROOT="${DISPATCH_WORKTREE_ROOT:-$HOME/.codex/worktrees}"
+# Keep each project's dispatched worktrees with the directory the dispatch was
+# invoked from. An explicit override still supports shared or custom roots.
+export DISPATCH_WORKTREE_ROOT="${DISPATCH_WORKTREE_ROOT:-$PWD/.codex/worktrees}"
 source "$REPO_ROOT/core/dispatch/lib/repos.sh"
 source "$REPO_ROOT/core/dispatch/lib/worktree.sh"
 source "$REPO_ROOT/core/dispatch/lib/docs.sh"

@@ -8,7 +8,7 @@ CODEX_DIR="$HOME/.codex"
 source "$REPO_ROOT/core/dispatch/lib/docs.sh"
 DOCS_ROOT="$(agent_docs_root)"
 
-mkdir -p "$CODEX_DIR/skills" "$CODEX_DIR/scripts" "$CODEX_DIR/worktrees"
+mkdir -p "$CODEX_DIR/skills" "$CODEX_DIR/scripts"
 ensure_agent_docs_root "$DOCS_ROOT"
 
 for skill in promptify finalize-work git-commit; do

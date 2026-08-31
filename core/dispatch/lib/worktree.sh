@@ -2,8 +2,9 @@
 # Worktree lifecycle shared by engine adapters.
 #
 # Adapters select DISPATCH_WORKTREE_ROOT. The portable default keeps temporary
-# checkouts outside repositories at ~/.agent-skills/worktrees. The Claude
-# adapter overrides it with the invoking directory's .claude/worktrees.
+# checkouts outside repositories at ~/.agent-skills/worktrees. Agent adapters
+# override it with the invoking directory's .claude/worktrees or
+# .codex/worktrees.
 
 worktree_root() {
   printf '%s\n' "${DISPATCH_WORKTREE_ROOT:-$HOME/.agent-skills/worktrees}"

@@ -56,7 +56,7 @@ CASES=(
   ac_03_repo_resolution
   ac_04_rejects_existing_worktree_or_branch
   ac_05_primary_is_cwd
-  ac_06_targets_get_sibling_worktrees
+  ac_06_targets_get_local_worktrees
   ac_07_refs_get_no_worktree
   ac_08_add_dir_contents
   ac_09_argv_order
@@ -151,12 +151,12 @@ assert_absent() {
   [ ! -e "$path" ] || fail "${label:+$label: }expected path to be absent: $path"
 }
 
-# assert_no_worktrees <parent-dir> [label] - nothing matching *-wt-* was created
+# assert_no_worktrees <root> [label] - no repo/slug worktree was created
 assert_no_worktrees() {
   local dir="$1" label="${2:-}" found
-  found="$(find "$dir" -maxdepth 1 -name '*-wt-*' 2>/dev/null | tr '\n' ' ')"
+  found="$(find "$dir" -mindepth 2 -maxdepth 2 -type d 2>/dev/null | tr '\n' ' ')"
   [ -z "${found// /}" ] ||
-    fail "${label:+$label: }expected no *-wt-* directories under $dir, found: $found"
+    fail "${label:+$label: }expected no worktrees under $dir, found: $found"
 }
 
 # --------------------------------------------------------------------------
@@ -270,9 +270,9 @@ add_local_commit() {
   git -C "$1" commit -qam "$2"
 }
 
-# wt_path <repo> <slug> - the sibling worktree path the tool must use
+# wt_path <repo> <slug> - the PWD-local Claude worktree path the tool must use
 wt_path() {
-  printf '%s/%s-wt-%s\n' "$(dirname "$1")" "$(basename "$1")" "$2"
+  printf '%s/.claude/worktrees/%s/%s\n' "$TC" "$(basename "$1")" "$2"
 }
 
 # --------------------------------------------------------------------------
@@ -304,16 +304,21 @@ _dispatch() {
   # real tabs in the operator's live session -- and, since the workspace is read
   # from the environment too, would assert against whichever workspace the
   # operator happened to be in rather than against a fixture.
-  env \
-    TMUX="$tmux_value" \
-    HERDR_ENV="$ACC_HERDR_ENV" \
-    HERDR_WORKSPACE_ID="$ACC_HERDR_WORKSPACE" \
-    DISPATCH_MUX="" \
-    DISPATCH_HERDR_BIN="$HERDR_STUB" \
-    DISPATCH_HERDR_STATE="$TC/herdr-state" \
-    DISPATCH_CLAUDE_BIN="$STUB" \
-    DISPATCH_SEARCH_GLOB="$TC/code/*" \
-    "$ENTRYPOINT" "$@" >"$TC/.acc-stdout" 2>"$TC/.acc-stderr"
+  (
+    cd "$TC" || exit 1
+    env \
+      TMUX="$tmux_value" \
+      HERDR_ENV="$ACC_HERDR_ENV" \
+      HERDR_WORKSPACE_ID="$ACC_HERDR_WORKSPACE" \
+      DISPATCH_MUX="" \
+      DISPATCH_WORKTREE_ROOT="" \
+      DISPATCH_HERDR_BIN="$HERDR_STUB" \
+      DISPATCH_HERDR_STATE="$TC/herdr-state" \
+      DISPATCH_CLAUDE_BIN="$STUB" \
+      DISPATCH_SEARCH_GLOB="$TC/code/*" \
+      AGENT_DOCS_ROOT="$TC/docs" \
+      "$ENTRYPOINT" "$@"
+  ) >"$TC/.acc-stdout" 2>"$TC/.acc-stderr"
   DRC=$?
   DOUT="$(cat "$TC/.acc-stdout")"
   DERR="$(cat "$TC/.acc-stderr")"
@@ -421,8 +426,8 @@ ac_01_requires_a_multiplexer() {
   assert_nonzero "$DRC" "exit status with neither TMUX nor HERDR_ENV"
   assert_contains "$DERR" "no supported terminal multiplexer" "stderr"
   assert_contains "$DERR" "herdr" "the error must name both supported multiplexers"
-  assert_absent "$TC/code/org/primary-wt-ac1" "worktree after a rejected dispatch"
-  assert_no_worktrees "$TC/code/org" "preflight must leave nothing behind"
+  assert_absent "$(wt_path "$TC/code/org/primary" ac1)" "worktree after a rejected dispatch"
+  assert_no_worktrees "$TC/.claude/worktrees" "preflight must leave nothing behind"
 }
 
 # --------------------------------------------------------------------------
@@ -436,8 +441,8 @@ ac_02_requires_brief() {
 
   assert_nonzero "$DRC" "exit status with a missing brief"
   assert_contains "$DERR" "brief not found" "stderr"
-  assert_absent "$TC/code/org/primary-wt-ac2" "worktree after a rejected dispatch"
-  assert_no_worktrees "$TC/code/org" "preflight must leave nothing behind"
+  assert_absent "$(wt_path "$TC/code/org/primary" ac2)" "worktree after a rejected dispatch"
+  assert_no_worktrees "$TC/.claude/worktrees" "preflight must leave nothing behind"
 }
 
 # --------------------------------------------------------------------------
@@ -452,16 +457,14 @@ ac_03_repo_resolution() {
   run_dispatch --slug ac3u --brief "$TC/brief.md" --target nosuchrepo
   assert_nonzero "$DRC" "unknown repo exit status"
   assert_contains "$DERR" "no repo named" "unknown repo stderr"
-  assert_no_worktrees "$TC/code/a" "unknown repo must create nothing"
-  assert_no_worktrees "$TC/code/b" "unknown repo must create nothing"
+  assert_no_worktrees "$TC/.claude/worktrees" "unknown repo must create nothing"
 
   run_dispatch --slug ac3a --brief "$TC/brief.md" --target images
   assert_nonzero "$DRC" "ambiguous repo exit status"
   assert_contains "$DERR" "ambiguous" "ambiguous repo stderr"
   assert_contains "$DERR" "$TC/code/a/images" "first candidate is listed"
   assert_contains "$DERR" "$TC/code/b/images" "second candidate is listed"
-  assert_no_worktrees "$TC/code/a" "ambiguous repo must create nothing"
-  assert_no_worktrees "$TC/code/b" "ambiguous repo must create nothing"
+  assert_no_worktrees "$TC/.claude/worktrees" "ambiguous repo must create nothing"
 }
 
 # --------------------------------------------------------------------------
@@ -474,7 +477,8 @@ ac_04_rejects_existing_worktree_or_branch() {
   printf '# brief\n' >"$TC/brief.md"
 
   # (a) the worktree directory already exists and must survive untouched
-  local squatter="$TC/code/org/primary-wt-ac4"
+  local squatter
+  squatter="$(wt_path "$TC/code/org/primary" ac4)"
   mkdir -p "$squatter"
   printf 'do not touch me\n' >"$squatter/keep.txt"
   local before_hash after_hash entries
@@ -494,7 +498,7 @@ ac_04_rejects_existing_worktree_or_branch() {
   run_dispatch --slug ac4b --brief "$TC/brief.md" --target second
   assert_nonzero "$DRC" "existing branch exit status"
   assert_contains "$DERR" "already exists" "existing branch stderr"
-  assert_absent "$TC/code/org/second-wt-ac4b" "no worktree for a rejected dispatch"
+  assert_absent "$(wt_path "$TC/code/org/second" ac4b)" "no worktree for a rejected dispatch"
 }
 
 # --------------------------------------------------------------------------
@@ -509,7 +513,8 @@ ac_05_primary_is_cwd() {
   run_dispatch --slug ac5 --brief "$TC/brief.md" --target primary --target second
   assert_zero "$DRC" "dispatch exit status (stderr: $(flat "$DERR"))"
 
-  local expected="$TC/code/org/primary-wt-ac5"
+  local expected
+  expected="$(wt_path "$TC/code/org/primary" ac5)"
   if ! poll_for_dispatch_argv "$expected"; then
     fail "the stub never recorded argv in the primary worktree $expected (dispatch exit $DRC)"
   fi
@@ -521,9 +526,9 @@ ac_05_primary_is_cwd() {
 }
 
 # --------------------------------------------------------------------------
-# AC-6: every target gets a sibling worktree on dispatch/<slug>
+# AC-6: every target gets a PWD-local worktree on dispatch/<slug>
 # --------------------------------------------------------------------------
-ac_06_targets_get_sibling_worktrees() {
+ac_06_targets_get_local_worktrees() {
   mkdir -p "$TC/code/org"
   mk_std_repo "$TC/code/org/primary"
   mk_std_repo "$TC/code/org/second"
@@ -534,8 +539,8 @@ ac_06_targets_get_sibling_worktrees() {
 
   local repo wt branch
   for repo in primary second; do
-    wt="$TC/code/org/$repo-wt-ac6"
-    assert_dir "$wt" "sibling worktree for $repo"
+    wt="$(wt_path "$TC/code/org/$repo" ac6)"
+    assert_dir "$wt" "PWD-local worktree for $repo"
     branch="$(git -C "$wt" branch --show-current 2>/dev/null || printf '<no worktree>')"
     assert_eq "$branch" "dispatch/ac6" "branch checked out in $repo's worktree"
   done
@@ -558,16 +563,16 @@ ac_07_refs_get_no_worktree() {
 
   run_dispatch --slug ac7 --brief "$TC/brief.md" --target primary --ref refonly
   assert_zero "$DRC" "dispatch exit status (stderr: $(flat "$DERR"))"
-  assert_dir "$TC/code/org/primary-wt-ac7" "the dispatch really ran"
+  assert_dir "$(wt_path "$TC/code/org/primary" ac7)" "the dispatch really ran"
 
-  assert_absent "$TC/code/org/refonly-wt-ac7" "a reference repo must get no worktree"
+  assert_absent "$(wt_path "$TC/code/org/refonly" ac7)" "a reference repo must get no worktree"
   assert_eq "$(git -C "$ref" branch --show-current)" "$before_branch" "ref repo branch"
   assert_eq "$(git -C "$ref" rev-parse HEAD)" "$before_head" "ref repo HEAD"
   assert_eq "$(git -C "$ref" status --porcelain)" "$before_status" "ref repo working tree"
 }
 
 # --------------------------------------------------------------------------
-# AC-8: siblings are reached via --add-dir
+# AC-8: secondary worktrees are reached via --add-dir
 # --------------------------------------------------------------------------
 ac_08_add_dir_contents() {
   mkdir -p "$TC/code/org"
@@ -580,11 +585,11 @@ ac_08_add_dir_contents() {
     --target primary --target second --ref refonly
   assert_zero "$DRC" "dispatch exit status (stderr: $(flat "$DERR"))"
 
-  load_dispatch_argv "$TC/code/org/primary-wt-ac8" "recorded argv" || return 0
+  load_dispatch_argv "$(wt_path "$TC/code/org/primary" ac8)" "recorded argv" || return 0
 
   local add_idx second_idx ref_idx
   add_idx="$(argv_index_of "--add-dir")"
-  second_idx="$(argv_index_of "$TC/code/org/second-wt-ac8")"
+  second_idx="$(argv_index_of "$(wt_path "$TC/code/org/second" ac8)")"
   ref_idx="$(argv_index_of "$TC/code/org/refonly")"
 
   assert_ne "$add_idx" "-1" "--add-dir is present in argv"
@@ -615,12 +620,13 @@ ac_09_argv_order() {
   run_dispatch --slug ac9 --brief "$TC/brief.md" --target primary --target second
   assert_zero "$DRC" "dispatch exit status (stderr: $(flat "$DERR"))"
 
-  load_dispatch_argv "$TC/code/org/primary-wt-ac9" "recorded argv" || return 0
+  load_dispatch_argv "$(wt_path "$TC/code/org/primary" ac9)" "recorded argv" || return 0
 
   local prompt sid_idx add_idx uuid
   prompt="$(argv_at 0)"
   assert_not_contains "${prompt:0:2}" "--" "argv[0] must be the prompt, not a flag"
-  assert_contains "$prompt" "$TC/brief.md" "argv[0] is the prompt naming the brief"
+  assert_contains "$prompt" "$TC/docs/dispatch/brief.md" \
+    "argv[0] is the prompt naming the staged brief"
 
   sid_idx="$(argv_index_of "--session-id")"
   assert_eq "$sid_idx" "1" "--session-id must immediately follow the prompt"
@@ -651,20 +657,22 @@ ac_10_prompt_skill_and_brief() {
 
   run_dispatch --slug ac10a --brief "$TC/brief.md" --target primary
   assert_zero "$DRC" "default-skill dispatch exit status (stderr: $(flat "$DERR"))"
-  if load_dispatch_argv "$TC/code/org/primary-wt-ac10a" "default skill"; then
+  if load_dispatch_argv "$(wt_path "$TC/code/org/primary" ac10a)" "default skill"; then
     assert_starts_with "$(argv_at 0)" "/superpowers:brainstorming " "default entry skill"
-    assert_contains "$(argv_at 0)" "$TC/brief.md" "absolute brief path in the prompt"
+    assert_contains "$(argv_at 0)" "$TC/docs/dispatch/brief.md" \
+      "absolute staged brief path in the prompt"
   fi
 
   run_dispatch --slug ac10b --brief "$TC/brief.md" --target primary \
     --skill superpowers:systematic-debugging
   assert_zero "$DRC" "--skill dispatch exit status (stderr: $(flat "$DERR"))"
-  if load_dispatch_argv "$TC/code/org/primary-wt-ac10b" "overridden skill"; then
+  if load_dispatch_argv "$(wt_path "$TC/code/org/primary" ac10b)" "overridden skill"; then
     assert_starts_with "$(argv_at 0)" "/superpowers:systematic-debugging " \
       "--skill overrides the prompt prefix"
     assert_not_contains "$(argv_at 0)" "/superpowers:brainstorming" \
       "the default skill must not survive --skill"
-    assert_contains "$(argv_at 0)" "$TC/brief.md" "absolute brief path in the prompt"
+    assert_contains "$(argv_at 0)" "$TC/docs/dispatch/brief.md" \
+      "absolute staged brief path in the prompt"
   fi
 }
 
@@ -709,11 +717,11 @@ ac_12_report_fields() {
   assert_zero "$DRC" "dispatch exit status (stderr: $(flat "$DERR"))"
 
   assert_contains "$DOUT" "primary-ac12" "stdout names the window"
-  assert_contains "$DOUT" "$TC/code/org/primary-wt-ac12" "stdout names the primary worktree"
-  assert_contains "$DOUT" "$TC/code/org/second-wt-ac12" "stdout names the second worktree"
+  assert_contains "$DOUT" "$(wt_path "$TC/code/org/primary" ac12)" "stdout names the primary worktree"
+  assert_contains "$DOUT" "$(wt_path "$TC/code/org/second" ac12)" "stdout names the second worktree"
   assert_contains "$DOUT" "--cleanup ac12" "stdout shows the cleanup invocation"
 
-  if load_dispatch_argv "$TC/code/org/primary-wt-ac12" "report cross-check"; then
+  if load_dispatch_argv "$(wt_path "$TC/code/org/primary" ac12)" "report cross-check"; then
     local sid_idx uuid
     sid_idx="$(argv_index_of "--session-id")"
     if [ "$sid_idx" -ge 0 ]; then
@@ -745,7 +753,7 @@ ac_13_base_ref_resolution() {
 
   run_dispatch --slug ac13a --brief "$TC/brief.md" --target alpha
   assert_zero "$DRC" "origin/HEAD dispatch exit status (stderr: $(flat "$DERR"))"
-  assert_eq "$(git -C "$TC/code/org/alpha-wt-ac13a" rev-parse HEAD 2>/dev/null || printf '<no worktree>')" \
+  assert_eq "$(git -C "$(wt_path "$alpha" ac13a)" rev-parse HEAD 2>/dev/null || printf '<no worktree>')" \
     "$alpha_origin" "origin/HEAD resolves to origin/main"
 
   # (b) origin/HEAD deleted, only origin/master remains
@@ -758,7 +766,7 @@ ac_13_base_ref_resolution() {
 
   run_dispatch --slug ac13b --brief "$TC/brief.md" --target beta
   assert_zero "$DRC" "origin/master fallback exit status (stderr: $(flat "$DERR"))"
-  assert_eq "$(git -C "$TC/code/org/beta-wt-ac13b" rev-parse HEAD 2>/dev/null || printf '<no worktree>')" \
+  assert_eq "$(git -C "$(wt_path "$beta" ac13b)" rev-parse HEAD 2>/dev/null || printf '<no worktree>')" \
     "$beta_origin" "falls back to origin/master"
 
   # (c) --base is honoured over auto-detection
@@ -775,7 +783,7 @@ ac_13_base_ref_resolution() {
 
   run_dispatch --slug ac13c --brief "$TC/brief.md" --target gamma --base origin/legacy
   assert_zero "$DRC" "--base dispatch exit status (stderr: $(flat "$DERR"))"
-  assert_eq "$(git -C "$TC/code/org/gamma-wt-ac13c" rev-parse HEAD 2>/dev/null || printf '<no worktree>')" \
+  assert_eq "$(git -C "$(wt_path "$gamma" ac13c)" rev-parse HEAD 2>/dev/null || printf '<no worktree>')" \
     "$gamma_legacy" "--base origin/legacy is honoured"
 
   # (d) no remote and no --base is a hard error naming --base
@@ -784,7 +792,7 @@ ac_13_base_ref_resolution() {
   run_dispatch --slug ac13d --brief "$TC/brief.md" --target delta
   assert_nonzero "$DRC" "no-remote dispatch exit status"
   assert_contains "$DERR" "--base" "no-remote stderr must name --base"
-  assert_absent "$TC/code/org/delta-wt-ac13d" "no worktree when the base cannot be resolved"
+  assert_absent "$(wt_path "$delta" ac13d)" "no worktree when the base cannot be resolved"
 }
 
 # --------------------------------------------------------------------------
@@ -797,7 +805,8 @@ ac_14_cleanup_removes() {
 
   run_dispatch --slug ac14 --brief "$TC/brief.md" --target primary
   assert_zero "$DRC" "setup dispatch exit status (stderr: $(flat "$DERR"))"
-  local wt="$TC/code/org/primary-wt-ac14"
+  local wt
+  wt="$(wt_path "$TC/code/org/primary" ac14)"
   poll_for_dispatch_argv "$wt" || true
 
   run_dispatch --cleanup ac14 --target primary
@@ -819,7 +828,8 @@ ac_15_cleanup_refuses_dirty() {
 
   run_dispatch --slug ac15 --brief "$TC/brief.md" --target primary
   assert_zero "$DRC" "setup dispatch exit status (stderr: $(flat "$DERR"))"
-  local wt="$TC/code/org/primary-wt-ac15"
+  local wt
+  wt="$(wt_path "$TC/code/org/primary" ac15)"
   poll_for_dispatch_argv "$wt" || true
   if [ ! -d "$wt" ]; then
     fail "setup dispatch produced no worktree at $wt, so cleanup cannot be exercised"
@@ -847,7 +857,8 @@ ac_16_cleanup_refuses_unmerged() {
 
   run_dispatch --slug ac16 --brief "$TC/brief.md" --target primary
   assert_zero "$DRC" "setup dispatch exit status (stderr: $(flat "$DERR"))"
-  local wt="$TC/code/org/primary-wt-ac16"
+  local wt
+  wt="$(wt_path "$TC/code/org/primary" ac16)"
   poll_for_dispatch_argv "$wt" || true
   if [ ! -d "$wt" ]; then
     fail "setup dispatch produced no worktree at $wt, so cleanup cannot be exercised"
@@ -957,13 +968,14 @@ ac_19_herdr_backend_launches() {
   run_dispatch_herdr --slug ac19 --brief "$TC/brief.md" --target primary
   assert_zero "$DRC" "herdr dispatch exit status (stderr: $(flat "$DERR"))"
 
-  local wt="$TC/code/org/primary-wt-ac19"
+  local wt
+  wt="$(wt_path "$TC/code/org/primary" ac19)"
   assert_dir "$wt" "the herdr backend still creates the primary worktree"
 
   poll_for_dispatch_argv "$wt" || { fail "no argv recorded under the herdr backend"; return 0; }
   read_argv "$wt/.dispatch-argv"
   assert_eq "$(argv_at 0)" \
-    "/superpowers:brainstorming Read $TC/brief.md — it is your briefing. Follow it." \
+    "/superpowers:brainstorming Read $TC/docs/dispatch/brief.md — it is your briefing. Follow it. Store every durable brief, design, review, and research artifact under $TC/docs, never in a target repository's docs directory." \
     "the whole prompt must survive herdr's shell as a single argument"
   assert_eq "$(argv_at 1)" "--session-id" "session flag follows the prompt"
 
