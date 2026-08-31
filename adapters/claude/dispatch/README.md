@@ -25,10 +25,11 @@ available in sessions.
 ## Worktrees
 
 Claude dispatches create worktrees at
-`~/.claude/worktrees/<repo>/<slug>`, rather than beside a source checkout. Set
-`DISPATCH_WORKTREE_ROOT` to use a different location. The shared lifecycle is
-implemented in `../../../core/dispatch`; this adapter only provides Claude CLI
-and command integration.
+`$PWD/.claude/worktrees/<repo>/<slug>`, where `$PWD` is the directory from
+which `dispatch-task.sh` was invoked. Run cleanup from that same directory, or
+set `DISPATCH_WORKTREE_ROOT` explicitly for both commands. The shared lifecycle
+is implemented in `../../../core/dispatch`; this adapter only provides Claude
+CLI and command integration.
 
 ## Usage
 

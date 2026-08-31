@@ -7,8 +7,9 @@ set -euo pipefail
 # not its target, so the libraries would be looked for beside the link.
 HERE="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
 REPO_ROOT="$(cd "$HERE/../../.." && pwd)"
-# The shared lifecycle is portable; this adapter supplies Claude's state root.
-export DISPATCH_WORKTREE_ROOT="${DISPATCH_WORKTREE_ROOT:-$HOME/.claude/worktrees}"
+# Keep each project's dispatched worktrees with the directory the dispatch was
+# invoked from. An explicit override still supports shared or custom roots.
+export DISPATCH_WORKTREE_ROOT="${DISPATCH_WORKTREE_ROOT:-$PWD/.claude/worktrees}"
 # shellcheck source=../../../core/dispatch/lib/repos.sh
 source "$REPO_ROOT/core/dispatch/lib/repos.sh"
 # shellcheck source=../../../core/dispatch/lib/worktree.sh

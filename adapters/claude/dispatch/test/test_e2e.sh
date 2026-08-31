@@ -76,3 +76,27 @@ test_e2e_dispatch_launches_with_correct_argv_and_cwd() {
   [ -n "$socket_path" ] && [ -S "$socket_path" ] && rm -f "$socket_path"
   return 0
 }
+
+test_claude_dispatch_defaults_worktree_root_to_pwd() {
+  mkdir -p "$SANDBOX/invoker" "$SANDBOX/herdr"
+  mkrepo "$SANDBOX/repo" main
+  mkremote "$SANDBOX/repo"
+  printf 'the briefing\n' > "$SANDBOX/brief.md"
+
+  (
+    cd "$SANDBOX/invoker" || exit 1
+    unset DISPATCH_WORKTREE_ROOT
+    TMUX='' HERDR_ENV=1 DISPATCH_MUX=herdr \
+    DISPATCH_HERDR_BIN="$ROOT/test/stub/herdr" \
+    DISPATCH_HERDR_STATE="$SANDBOX/herdr" \
+    DISPATCH_CLAUDE_BIN="$ROOT/test/stub/claude" \
+    AGENT_DOCS_ROOT="$SANDBOX/docs" \
+      "$ROOT/bin/dispatch-task.sh" \
+        --slug local-root --brief "$SANDBOX/brief.md" \
+        --target "$SANDBOX/repo" >/dev/null
+  ) || { fail "dispatch with the default worktree root exited non-zero"; return; }
+
+  local wt="$SANDBOX/invoker/.claude/worktrees/repo/local-root"
+  [ -d "$wt" ] || { fail "default worktree was not created under PWD/.claude/worktrees"; return; }
+  assert_eq "$(cat "$SANDBOX/herdr/tab-cwd")" "$wt" "dispatched cwd"
+}

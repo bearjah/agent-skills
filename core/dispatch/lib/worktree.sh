@@ -3,7 +3,7 @@
 #
 # Adapters select DISPATCH_WORKTREE_ROOT. The portable default keeps temporary
 # checkouts outside repositories at ~/.agent-skills/worktrees. The Claude
-# adapter overrides it with ~/.claude/worktrees.
+# adapter overrides it with the invoking directory's .claude/worktrees.
 
 worktree_root() {
   printf '%s\n' "${DISPATCH_WORKTREE_ROOT:-$HOME/.agent-skills/worktrees}"

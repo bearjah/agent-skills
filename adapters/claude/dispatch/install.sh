@@ -6,8 +6,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$HERE/../../.." && pwd)"
 source "$REPO_ROOT/core/dispatch/lib/docs.sh"
 DOCS_ROOT="$(agent_docs_root)"
-mkdir -p "$HOME/.claude/scripts" "$HOME/.claude/commands" "$HOME/.claude/skills" \
-  "$HOME/.claude/worktrees"
+mkdir -p "$HOME/.claude/scripts" "$HOME/.claude/commands" "$HOME/.claude/skills"
 ensure_agent_docs_root "$DOCS_ROOT"
 
 # Checked before anything is linked, so a rejected install leaves nothing behind.
