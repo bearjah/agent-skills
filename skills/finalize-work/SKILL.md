@@ -1,6 +1,6 @@
 ---
 name: finalize-work
-description: "Use when a dispatched work item is finished and its session is about to be closed — \"finalize this work\", \"wrap up\", \"ready to close this session\", \"clean up before I close this\" — or when asked what a worktree session left behind, whether its documents and INDEX row are true, or whether it is safe to close."
+description: "Reconcile a finished dispatched work item, report what remains, and—when explicitly requested and safely merged—remove its task worktree and branch. Use for \"finalize this work\", \"wrap up\", \"ready to close this session\", cleanup requests, or audits of what a worktree left behind."
 ---
 
 # finalize-work
@@ -8,15 +8,17 @@ description: "Use when a dispatched work item is finished and its session is abo
 Close the loop `/dispatch` opened. A dispatched session writes documents beneath
 `${AGENT_DOCS_ROOT:-$HOME/docs}` and is then abandoned: nothing reconciles them
 against what shipped, and the worktree lives forever. Run this last, inside the
-finishing worktree — after `superpowers:finishing-a-development-branch` has decided
-*how to integrate* the code. This is the paperwork, not that decision.
+finishing worktree, after integration has been decided. Reconcile the paperwork
+first. Remove the worktree only when the user explicitly asks and every cleanup
+precondition below is proven.
 ## Authority
 | You may | You may not |
 |---|---|
 | Edit documents under the configured docs root | Delete or move any file |
-| Add or update this item's `INDEX.md` row | Remove a worktree or delete a branch |
+| Add or update this item's `INDEX.md` row | Force-remove a worktree or force-delete a branch |
 | Commit the configured docs root by explicit pathspec | Push anything, anywhere |
 | Read GitHub via `gh pr view` / `gh pr list` | Open, close, comment on or edit a PR or issue |
+| On explicit user request, remove the verified current dispatch worktree and safely delete its merged task branch | Remove any worktree with changes, unpushed commits, an unintegrated HEAD, an unresolved sibling target, or a protected/base branch |
 Everything on the right leaves as a paste-ready command for the human, in Phase 2.
 ## 0. Locate the dispatch
 ```bash
@@ -80,8 +82,12 @@ Make one todo per numbered item. Work them in order.
    is not `MERGED`** — the check this skill exists for. Give the claim, the real
    state, and the file and line to correct.
 
-4. **Commits with no PR are unfinished work**, even when pushed. Check
-   `git -C <wt> log --oneline <base>..HEAD` against step 2's `gh pr list`.
+4. **Commits with no PR are unfinished work by default.** The exception is an
+   explicit user request to integrate directly into `main`. In that case, use
+   `gh` to verify the exact commit is reachable from the remote default branch,
+   record its commit timestamp, and state that no PR exists by user choice. Check
+   `git -C <wt> log --oneline <base>..HEAD` against step 2's `gh pr list` either
+   way.
 
 5. **Enumerate what was left undone** — deferred tasks, open questions, findings with
    no work item, blockers. Each lands in exactly one of three places and you name
@@ -110,13 +116,17 @@ Make one todo per numbered item. Work them in order.
    ```
    A pathspec commit ignores the rest of the index but commits the **working
    tree** — so if `INDEX.md` carries another session's in-flight edit, leave it
-   out and hand the human the one-line row. The commit needs a
+   out and hand the human the one-line row. The commit normally needs a
    `ref: <full issue URL>` trailer; if no document names the issue, **stop and
-   ask**. That is a Phase 3 blocker, never something to invent or omit.
+   ask**. If the user explicitly waives the issue-reference requirement, commit
+   without inventing a trailer and record the waiver in the status evidence.
 
-## Phase 2 — report what needs cleaning; do not clean it
+## Phase 2 — report or perform cleanup
 
-Every item is a command the human runs. Emit them filled in, never as a template.
+Always audit every item below. By default, emit filled-in cleanup commands for the
+human. If the user explicitly asked to remove or clean up the worktree, execute
+only the worktree/branch cleanup after all mandatory preconditions pass. Never
+infer destructive authorization from an ordinary finalization or status request.
 
 - **Raw research filed with the item.** `find "$agent_docs_root"/<category>/<item> -type f ! -name '*.md'`
   — command output, JSON corpora, TSVs, transcripts belong in `research/<item>/`.
@@ -139,6 +149,43 @@ Every item is a command the human runs. Emit them filled in, never as a template
   commits not in the base, and `--force` discards them. If the branch was renamed,
   say that cleanup deletes `dispatch/<slug>` and leaves the renamed branch behind.
 
+### Executing worktree cleanup
+
+Run this mode only when the current user explicitly requested removal or cleanup.
+Before any mutation, prove all of the following for every target discovered in
+Phase 0:
+
+1. Phase 1 document reconciliation is committed, or the user explicitly waived a
+   specific documentation requirement. Unrelated docs-root changes remain
+   untouched.
+2. `git -C <worktree> status --porcelain` is empty.
+3. The task HEAD is contained in local `main` and in `origin/main`:
+   `git -C <worktree> merge-base --is-ancestor HEAD main` and the same command
+   with `origin/main` both exit zero. Fetching is not required; if the remote ref
+   is missing or stale and containment cannot be proven, stop.
+4. `git -C <worktree> log --oneline origin/main..HEAD` is empty.
+5. The branch is neither `main`, `master`, nor another protected/base branch, and
+   the resolved removal target exactly equals the Phase 0 worktree path beneath a
+   recognized dispatch root.
+6. Every sibling target carrying the same slug has been audited. Do not remove a
+   subset when another target has changes or unintegrated commits.
+
+Prefer `dispatch-task.sh --cleanup` when it exists and its semantics match the
+resolved branch. Otherwise use native Git from a stable checkout that will not be
+removed:
+
+```bash
+git -C <stable-main-checkout> worktree remove <exact-worktree-path>
+git -C <stable-main-checkout> branch -d <exact-task-branch>
+```
+
+Never pass `--force`. If either command refuses, stop and report the error; do not
+weaken the check. Afterward, verify the path is absent from `git worktree list`,
+the task branch is absent from `git branch --list`, local/remote `main` still point
+to the expected integrated commit, and unrelated files in the stable checkout are
+unchanged. State explicitly what was removed and that the committed work remains
+recoverable from `main`.
+
 ## Phase 3 — verdict
 
 The question is **"is this work item finalized?"**, not "would closing the window
@@ -149,13 +196,14 @@ Render all five slots; an empty one says so, none may be dropped.
 committed:   <what you changed and committed, or "nothing">
 PR state:    <ref> <STATE> <merge commit> <merged at>   ← from gh, or "no PR references found"
 left undone: <each item → status line | INDEX Deferred | dropped>
-for you:     <the paste-ready commands from Phase 2>
+for you:     <the paste-ready commands from Phase 2, cleanup performed, or "nothing">
 verdict:     FINALIZED, or BLOCKED: <what blocks it>
 ```
 
 `BLOCKED` is the honest answer whenever a document claims something `gh`
-contradicts, documents are uncommitted, commits are unpushed or carry no PR, no
-issue URL exists for the `ref:` trailer, or anything is left undone with no
+contradicts, documents are uncommitted, commits are unpushed or are neither merged
+through a PR nor explicitly authorized and verified on remote `main`, a required
+issue URL is absent without an explicit waiver, or anything is left undone with no
 recorded home. It goes in the verdict slot, not as a caveat under a `yes`.
 
 ## Red flags — the verdict is not yet earned
@@ -165,6 +213,6 @@ recorded home. It goes in the verdict slot, not as a caveat under a `yes`.
 | "The documents say it shipped, so it shipped" | Only `gh` says it shipped. Run it. |
 | "It's research-only, there is no PR to check" | That claim is the thing being checked. Run `gh pr list --head` and report the empty result. |
 | "Nothing is in flight, so the work item is done" | That answers "will closing lose work?", which nobody asked. |
-| "Clean worktree, so it's safe to remove" | A leftover without a filled-in command, its targets and its preconditions is not reported. |
+| "Clean worktree, so it's safe to remove" | Cleanliness is only one precondition. Prove local and remote `main` containment, documentation state, exact target identity, and sibling-target safety first. |
 | "The blockers are listed, so `yes` is fine on top" | A `yes` with blockers under it is `BLOCKED`. |
-| "I'll invent an issue URL for the trailer" | Never. Ask. |
+| "I'll invent an issue URL for the trailer" | Never invent one. Ask, or honor an explicit user waiver. |
