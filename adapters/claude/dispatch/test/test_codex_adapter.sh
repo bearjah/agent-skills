@@ -87,6 +87,15 @@ test_codex_dispatch_uses_configured_docs_root() {
     *" --ask-for-approval "*) fail "Codex dispatch overrode the configured approval policy by default" ;;
   esac
   assert_contains "${argv[*]}" "tui.vim_mode_default=true"
+  local workflow_root
+  workflow_root="$(cd "$ROOT/../../../core/dispatch" && pwd)"
+  [ -s "$workflow_root/workflow.md" ] || fail "shared execution workflow is missing"
+  assert_contains "${argv[-1]}" "$workflow_root/workflow.md"
+  assert_contains "${argv[-1]}" "$CODEX_ROOT/bin/dispatch-task.sh"
+  assert_contains "${argv[-1]}" "$SANDBOX/worktrees"
+  # The workflow must be accessible even when the target checkout is elsewhere.
+  local add_dirs="${argv[*]:0:$(( ${#argv[@]} - 1 ))}"
+  assert_contains "$add_dirs" "$workflow_root"
 }
 
 test_codex_dispatch_allows_permission_overrides() {
@@ -111,6 +120,7 @@ test_codex_dispatch_allows_permission_overrides() {
   mapfile -t argv < "$wt/.dispatch-argv"
   assert_contains "${argv[*]}" "--sandbox workspace-write"
   assert_contains "${argv[*]}" "--ask-for-approval on-request"
+  assert_contains "${argv[-1]}" "Parent Codex sandbox: workspace-write; approval policy: on-request"
 }
 
 test_codex_dispatch_allows_environment_permission_overrides() {
@@ -136,6 +146,7 @@ test_codex_dispatch_allows_environment_permission_overrides() {
   mapfile -t argv < "$wt/.dispatch-argv"
   assert_contains "${argv[*]}" "--sandbox read-only"
   assert_contains "${argv[*]}" "--ask-for-approval untrusted"
+  assert_contains "${argv[-1]}" "Parent Codex sandbox: read-only; approval policy: untrusted"
 }
 
 test_codex_dispatch_rejects_invalid_sandbox_mode() {

@@ -648,7 +648,7 @@ ac_09_argv_order() {
 }
 
 # --------------------------------------------------------------------------
-# AC-10: the entry skill prefixes the prompt; the brief path is absolute
+# AC-10: the selected entry skill and shared workflow reach the session
 # --------------------------------------------------------------------------
 ac_10_prompt_skill_and_brief() {
   mkdir -p "$TC/code/org"
@@ -658,7 +658,9 @@ ac_10_prompt_skill_and_brief() {
   run_dispatch --slug ac10a --brief "$TC/brief.md" --target primary
   assert_zero "$DRC" "default-skill dispatch exit status (stderr: $(flat "$DERR"))"
   if load_dispatch_argv "$(wt_path "$TC/code/org/primary" ac10a)" "default skill"; then
-    assert_starts_with "$(argv_at 0)" "/superpowers:brainstorming " "default entry skill"
+    assert_contains "$(argv_at 0)" "superpowers:brainstorming" "default entry skill"
+    assert_contains "$(argv_at 0)" "$(cd "$ROOT/../../../core/dispatch" && pwd)/workflow.md" \
+      "shared workflow path in the prompt"
     assert_contains "$(argv_at 0)" "$TC/docs/dispatch/brief.md" \
       "absolute staged brief path in the prompt"
   fi
@@ -667,9 +669,9 @@ ac_10_prompt_skill_and_brief() {
     --skill superpowers:systematic-debugging
   assert_zero "$DRC" "--skill dispatch exit status (stderr: $(flat "$DERR"))"
   if load_dispatch_argv "$(wt_path "$TC/code/org/primary" ac10b)" "overridden skill"; then
-    assert_starts_with "$(argv_at 0)" "/superpowers:systematic-debugging " \
-      "--skill overrides the prompt prefix"
-    assert_not_contains "$(argv_at 0)" "/superpowers:brainstorming" \
+    assert_contains "$(argv_at 0)" "superpowers:systematic-debugging" \
+      "--skill overrides the selected workflow"
+    assert_not_contains "$(argv_at 0)" "superpowers:brainstorming" \
       "the default skill must not survive --skill"
     assert_contains "$(argv_at 0)" "$TC/docs/dispatch/brief.md" \
       "absolute staged brief path in the prompt"
@@ -974,9 +976,11 @@ ac_19_herdr_backend_launches() {
 
   poll_for_dispatch_argv "$wt" || { fail "no argv recorded under the herdr backend"; return 0; }
   read_argv "$wt/.dispatch-argv"
-  assert_eq "$(argv_at 0)" \
-    "/superpowers:brainstorming Read $TC/docs/dispatch/brief.md — it is your briefing. Follow it. Store every durable brief, design, review, and research artifact under $TC/docs, never in a target repository's docs directory." \
-    "the whole prompt must survive herdr's shell as a single argument"
+  assert_contains "$(argv_at 0)" "$TC/docs/dispatch/brief.md" "brief survives shell quoting"
+  assert_contains "$(argv_at 0)" "$(cd "$ROOT/../../../core/dispatch" && pwd)/workflow.md" \
+    "workflow survives shell quoting"
+  assert_contains "$(argv_at 0)" "Parent Claude permission mode: auto" \
+    "the end of the prompt remains in the same argument"
   assert_eq "$(argv_at 1)" "--session-id" "session flag follows the prompt"
 
   # The tab is opened where the work is, and labelled like the tmux window.

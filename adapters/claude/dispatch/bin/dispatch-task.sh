@@ -149,7 +149,7 @@ for repo in "${resolved_targets[@]}"; do
 done
 
 primary_wt="${target_worktrees[0]}"
-add_dirs=("$docs_root" "${target_worktrees[@]:1}")
+add_dirs=("$docs_root" "$REPO_ROOT/core/dispatch" "${target_worktrees[@]:1}")
 for r in ${resolved_refs+"${resolved_refs[@]}"}; do
   add_dirs+=("$r")
 done
@@ -157,8 +157,9 @@ done
 # --- launch ---
 session_id="$(uuidgen)"
 window_name="$(basename "${resolved_targets[0]}")-$SLUG"
-prompt="/$SKILL Read $BRIEF — it is your briefing. Follow it. Store every durable brief, design, review, and research artifact under $docs_root, never in a target repository's docs directory."
+prompt="Read the dispatch workflow at \"$REPO_ROOT/core/dispatch/workflow.md\" and the brief at \"$BRIEF\", then follow both within the user's scope. After brainstorming and the high-level plan are agreed, execute autonomously through reviewed spec, implementation plan, implementation, validation, and PR creation. Use independent reviewer subagents at every stage gate and actually dispatch required follow-ups. Planning-only requests remain planning-only. Use the $SKILL workflow for the applicable stage; preserve existing approvals. Store every durable brief, design, plan, review, and research artifact under $docs_root, never in a target repository's docs directory. Follow-up dispatcher: \"$HERE/bin/dispatch-task.sh\"; stable worktree root: \"$DISPATCH_WORKTREE_ROOT\"."
 
+prompt="$prompt Parent Claude permission mode: ${PERMISSION_MODE:-inherited from user configuration}. Preserve effective permission limits in follow-up launches."
 build_claude_argv "$prompt" "$session_id" "$PERMISSION_MODE" ${add_dirs+"${add_dirs[@]}"}
 CLAUDE_ARGV=(env "AGENT_DOCS_ROOT=$docs_root" "${CLAUDE_ARGV[@]}")
 launch_window "$MUX" "$window_name" "$primary_wt" "${CLAUDE_ARGV[@]}"

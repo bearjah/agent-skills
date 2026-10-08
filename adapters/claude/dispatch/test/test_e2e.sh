@@ -34,6 +34,12 @@ _e2e_body() {
   mapfile -t argv < "$wt/.dispatch-argv"
   assert_contains "${argv[0]}" "superpowers:brainstorming"
   assert_contains "${argv[0]}" "$SANDBOX/docs/dispatch/brief.md"
+  local workflow_root
+  workflow_root="$(cd "$ROOT/../../../core/dispatch" && pwd)"
+  [ -s "$workflow_root/workflow.md" ] || fail "shared execution workflow is missing"
+  assert_contains "${argv[0]}" "$workflow_root/workflow.md"
+  assert_contains "${argv[0]}" "$ROOT/bin/dispatch-task.sh"
+  assert_contains "${argv[0]}" "$SANDBOX/worktrees"
   assert_eq "${argv[1]}" "--session-id" "session flag position"
   assert_eq "${argv[3]}" "--permission-mode" "permission mode follows the session id"
   assert_eq "${argv[4]}" "auto" "dispatched sessions default to auto"
@@ -50,6 +56,7 @@ _e2e_body() {
   assert_contains "$rest" "$SANDBOX/worktrees/second/e2e"
   assert_contains "$rest" "$SANDBOX/code/org/refonly"
   assert_contains "$rest" "$SANDBOX/docs"
+  assert_contains "$rest" "$workflow_root"
   [ -f "$SANDBOX/docs/dispatch/brief.md" ] || fail "brief was not stored in docs root"
   [ ! -d "$SANDBOX/worktrees/refonly/e2e" ] || fail "ref repo got a worktree"
 }
@@ -99,4 +106,28 @@ test_claude_dispatch_defaults_worktree_root_to_pwd() {
   local wt="$SANDBOX/invoker/.claude/worktrees/repo/local-root"
   [ -d "$wt" ] || { fail "default worktree was not created under PWD/.claude/worktrees"; return; }
   assert_eq "$(cat "$SANDBOX/herdr/tab-cwd")" "$wt" "dispatched cwd"
+}
+
+test_claude_dispatch_records_permission_override_for_followups() {
+  mkdir -p "$SANDBOX/herdr"
+  mkrepo "$SANDBOX/repo" main
+  mkremote "$SANDBOX/repo"
+  printf 'the briefing\n' > "$SANDBOX/brief.md"
+
+  TMUX='' HERDR_ENV=1 DISPATCH_MUX=herdr \
+  DISPATCH_HERDR_BIN="$ROOT/test/stub/herdr" \
+  DISPATCH_HERDR_STATE="$SANDBOX/herdr" \
+  DISPATCH_CLAUDE_BIN="$ROOT/test/stub/claude" \
+  DISPATCH_WORKTREE_ROOT="$SANDBOX/worktrees" \
+  AGENT_DOCS_ROOT="$SANDBOX/docs" \
+    "$ROOT/bin/dispatch-task.sh" \
+      --slug permissions --brief "$SANDBOX/brief.md" \
+      --target "$SANDBOX/repo" --permission-mode manual >/dev/null \
+    || { fail "Claude dispatch with explicit permission mode failed"; return; }
+
+  local argv=()
+  mapfile -t argv < "$SANDBOX/worktrees/repo/permissions/.dispatch-argv"
+  assert_eq "${argv[3]}" "--permission-mode"
+  assert_eq "${argv[4]}" "manual"
+  assert_contains "${argv[0]}" "Parent Claude permission mode: manual"
 }

@@ -12,6 +12,28 @@ A dispatch is a **separate top-level session, not a subagent**. There is no
 shared context and no return value. Everything it knows comes from the brief;
 everything you learn back comes from the artifact it writes.
 
+Both adapters load the [shared execution workflow](../../../core/dispatch/workflow.md).
+After brainstorming and the high-level plan are agreed, implementation sessions
+autonomously write a spec when needed, write an implementation plan, implement,
+validate in a working environment, and create a PR. An independent reviewer
+subagent must comprehensively review each stage, and findings must be resolved
+and re-reviewed before proceeding. The default brainstorming skill does not
+restart an already approved design.
+
+Record approval evidence, scope, acceptance criteria, and validation prerequisites
+in the brief. Missing environment setup must be resolved; required checks that
+cannot run block completion. Related work that must be split gets an actual,
+verified follow-up session with an explicit dependency base and a linked record.
+Required acceptance work must complete before the parent is ready. Planning-only,
+research-only, and review-only briefs retain their scope. Explicit later human
+approval requirements and permission limits still apply.
+
+Store specs in `${AGENT_DOCS_ROOT:-$HOME/docs}/<canonical-repo>/designs/`, plans
+in that repository's `plans/`, and review/validation evidence in `reviews/`.
+Briefs remain under the docs root's `dispatch/`. Do not commit the shared docs
+repository without an explicit request. Opening the PR does not authorize a
+merge, deployment, or worktree cleanup.
+
 ## Install
 
 ```bash

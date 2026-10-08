@@ -95,10 +95,11 @@ for repo in "${resolved_targets[@]}"; do
 done
 
 primary="${worktrees[0]}"
-add_dirs=("$docs_root" "${worktrees[@]:1}")
+add_dirs=("$docs_root" "$REPO_ROOT/core/dispatch" "${worktrees[@]:1}")
 for ref in ${resolved_refs+"${resolved_refs[@]}"}; do add_dirs+=("$ref"); done
-prompt="Read $BRIEF and follow it. Store every durable brief, design, review, and research artifact under $docs_root, never in a target repository's docs directory."
-[ -n "$SKILL" ] && prompt="Use the $SKILL workflow if it is available. $prompt"
+prompt="Read the dispatch workflow at \"$REPO_ROOT/core/dispatch/workflow.md\" and the brief at \"$BRIEF\", then follow both within the user's scope. After brainstorming and the high-level plan are agreed, execute autonomously through reviewed spec, implementation plan, implementation, validation, and PR creation. Use independent reviewer subagents at every stage gate and actually dispatch required follow-ups. Planning-only requests remain planning-only. Store every durable brief, design, plan, review, and research artifact under $docs_root, never in a target repository's docs directory. Follow-up dispatcher: \"$HERE/bin/dispatch-task.sh\"; stable worktree root: \"$DISPATCH_WORKTREE_ROOT\"."
+[ -n "$SKILL" ] && prompt="$prompt Use the $SKILL workflow if available for the applicable stage; preserve existing approvals."
+prompt="$prompt Parent Codex sandbox: ${SANDBOX_MODE:-inherited from user configuration}; approval policy: ${APPROVAL_POLICY:-inherited from user configuration}. Preserve effective permission limits in follow-up launches."
 argv=(env "AGENT_DOCS_ROOT=$docs_root" "${DISPATCH_CODEX_BIN:-codex}" --cd "$primary" -c 'model_reasoning_effort="high"' -c 'tui.vim_mode_default=true')
 [ -n "$SANDBOX_MODE" ] && argv+=(--sandbox "$SANDBOX_MODE")
 [ -n "$APPROVAL_POLICY" ] && argv+=(--ask-for-approval "$APPROVAL_POLICY")
