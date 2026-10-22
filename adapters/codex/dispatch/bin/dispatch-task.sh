@@ -100,7 +100,8 @@ for ref in ${resolved_refs+"${resolved_refs[@]}"}; do add_dirs+=("$ref"); done
 prompt="Read the dispatch workflow at \"$REPO_ROOT/core/dispatch/workflow.md\" and the brief at \"$BRIEF\", then follow both within the user's scope. After brainstorming and the high-level plan are agreed, execute autonomously through reviewed spec, implementation plan, implementation, validation, and PR creation. Use independent reviewer subagents at every stage gate and actually dispatch required follow-ups. Planning-only requests remain planning-only. Store every durable brief, design, plan, review, and research artifact under $docs_root, never in a target repository's docs directory. Follow-up dispatcher: \"$HERE/bin/dispatch-task.sh\"; stable worktree root: \"$DISPATCH_WORKTREE_ROOT\"."
 [ -n "$SKILL" ] && prompt="$prompt Use the $SKILL workflow if available for the applicable stage; preserve existing approvals."
 prompt="$prompt Parent Codex sandbox: ${SANDBOX_MODE:-inherited from user configuration}; approval policy: ${APPROVAL_POLICY:-inherited from user configuration}. Preserve effective permission limits in follow-up launches."
-argv=(env "AGENT_DOCS_ROOT=$docs_root" "${DISPATCH_CODEX_BIN:-codex}" --cd "$primary" -c 'model_reasoning_effort="high"' -c 'tui.vim_mode_default=true')
+prompt="$prompt Follow the Codex model policy at \"$REPO_ROOT/core/dispatch/codex-model-policy.md\": lead and independent reviewers use gpt-6.1-sol/high; bounded workers use gpt-6-luna/high; exceptional unresolved problems may use gpt-6-astra/high. Record actual model selections and escalations."
+argv=(env "AGENT_DOCS_ROOT=$docs_root" "${DISPATCH_CODEX_BIN:-codex}" --cd "$primary" --model gpt-6.1-sol -c 'model_reasoning_effort="high"' -c 'tui.vim_mode_default=true')
 [ -n "$SANDBOX_MODE" ] && argv+=(--sandbox "$SANDBOX_MODE")
 [ -n "$APPROVAL_POLICY" ] && argv+=(--ask-for-approval "$APPROVAL_POLICY")
 [ "${#add_dirs[@]}" -gt 0 ] && argv+=(--add-dir "${add_dirs[@]}")

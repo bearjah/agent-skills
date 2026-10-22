@@ -15,8 +15,9 @@ cleanup from that same directory, or set `DISPATCH_WORKTREE_ROOT` explicitly
 for both commands. Use `DISPATCH_MUX=tmux|herdr` to override detection. Durable
 documents go under `${AGENT_DOCS_ROOT:-$HOME/docs}` and that directory is
 automatically made writable in the spawned session. Sessions start with high
-reasoning and Vim composer mode. Permission settings inherit the user's Codex
-configuration. Override them per session with
+reasoning on `gpt-6.1-sol` and Vim composer mode. The explicit lead model takes
+precedence over the user's configured default. Permission settings inherit the
+user's Codex configuration. Override them per session with
 `--sandbox workspace-write --approval-policy on-request`, or set
 `DISPATCH_CODEX_SANDBOX` and
 `DISPATCH_CODEX_APPROVAL_POLICY`.
@@ -26,6 +27,33 @@ dispatch-task.sh --slug TASK --brief BRIEF.md --target REPO
 ```
 
 Both adapters load the [shared execution workflow](../../../core/dispatch/workflow.md).
+Codex also loads the [model policy](../../../core/dispatch/codex-model-policy.md):
+Sol/high handles coordination, design, planning, complex implementation, and
+independent reviews; Luna/high handles bounded coding, discovery, check execution,
+and drafting. Luna escalates to Sol for missing design decisions, boundary
+changes, or work still unresolved after one correction cycle. Astra/high is
+reserved for exceptionally difficult architecture or unresolved review disputes.
+Sol decides acceptance and reviews drafts before use. The task record tracks
+requested and verified model settings, limitations, and escalations. These are
+delegation instructions enforced by the lead, not an automatic stage router;
+the launcher pins only the lead model and reasoning.
+
+The shared workflow makes modularity and maintainability acceptance requirements:
+cohesive modules, explicit interfaces and dependencies, reuse without speculative
+abstractions, and review of coupling, duplication, failure handling, and testability.
+Required implementation, cleanup, integration, and validation finish before
+readiness. A required child session must finish and be integrated first; a TODO
+or follow-up launch does not count as completion.
+
+Every commit uses a concise imperative subject, a blank line, and a body with
+four mandatory headers: `What changed?`, `Why?`, `How did you test it?`, and
+`Potential risks`. Each section needs meaningful content, including for trivial
+changes. Report tests not run with a reason and explain any assessment that no
+material risks were identified. Preserve useful investigation findings. Optional
+footers follow repository conventions. Use Conventional Commit prefixes where
+the repository requires them. Keep one coherent change per commit and preserve
+searchable context for future debugging; see the shared workflow for details.
+
 Record the agreed brainstorming outcome, high-level plan, acceptance criteria,
 approval evidence, and validation prerequisites in the brief. Once agreement
 exists, implementation sessions autonomously write a spec when needed, write an

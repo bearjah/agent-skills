@@ -87,10 +87,20 @@ test_codex_dispatch_uses_configured_docs_root() {
     *" --ask-for-approval "*) fail "Codex dispatch overrode the configured approval policy by default" ;;
   esac
   assert_contains "${argv[*]}" "tui.vim_mode_default=true"
+  local model_index=-1 i
+  for ((i=0; i<${#argv[@]}; i++)); do
+    if [ "${argv[i]}" = "--model" ]; then model_index=$i; break; fi
+  done
+  [ "$model_index" -ge 0 ] || { fail "Codex dispatch did not pin the lead model"; return; }
+  assert_eq "${argv[model_index+1]}" "gpt-6.1-sol" "Codex lead model"
+  assert_contains "${argv[*]}" 'model_reasoning_effort="high"'
   local workflow_root
   workflow_root="$(cd "$ROOT/../../../core/dispatch" && pwd)"
   [ -s "$workflow_root/workflow.md" ] || fail "shared execution workflow is missing"
   assert_contains "${argv[-1]}" "$workflow_root/workflow.md"
+  [ -s "$workflow_root/codex-model-policy.md" ] || fail "Codex model policy is missing"
+  assert_contains "${argv[-1]}" "$workflow_root/codex-model-policy.md"
+  assert_contains "${argv[-1]}" "bounded workers use gpt-6-luna/high"
   assert_contains "${argv[-1]}" "$CODEX_ROOT/bin/dispatch-task.sh"
   assert_contains "${argv[-1]}" "$SANDBOX/worktrees"
   # The workflow must be accessible even when the target checkout is elsewhere.

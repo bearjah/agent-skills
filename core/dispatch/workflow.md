@@ -30,6 +30,28 @@ Use `spec-plan` when available for specs and plans, or the available equivalent;
 apply the delegated review gates above. Do not invoke a finalization workflow
 that ends execution before the required PR has been created.
 
+## Keep each task small enough to implement directly
+
+Minimize each task's scope to make implementation easier. Give it one clear
+outcome, a small cohesive set of changes, explicit file or module ownership,
+known interfaces, and concrete acceptance checks. Include only what is necessary
+to deliver that outcome; exclude opportunistic features, unrelated cleanup, and
+speculative generalization.
+
+Before dispatching or implementing a task, split independently implementable
+outcomes into smaller tasks. Specify dependencies and integration ownership;
+keep tightly coupled changes together when splitting would add coordination or
+leave an unusable intermediate result. If a task still requires several unrelated
+decisions or outcomes, narrow or split it before starting. Reviewers must check
+that the plan uses the smallest practical implementation steps.
+
+Apply this rule to parent briefs, implementation-plan tasks, worker assignments,
+and child dispatches. Decomposition must still cover the full agreed outcome:
+retain necessary failure handling, maintainability, integration, tests, and
+validation. Required children must finish before parent readiness. Record any
+necessary scope expansion and its reason; material design or scope changes still
+require the user's agreement.
+
 ## Workspace and durable evidence
 
 Inspect branches, worktrees, and status for every target. Continue in the
@@ -46,6 +68,22 @@ validation results, follow-up dispatch identifiers, and PR URLs. Preserve this
 record across session continuation rather than repeating completed stages.
 
 ## Review each stage before proceeding
+
+Modularity and maintainability are acceptance requirements for every implementation
+task. Inspect existing modules, contracts, conventions, and tests before designing
+changes. Reuse established implementations. Give each module a cohesive purpose
+and explicit interface; keep orchestration, domain rules, persistence, and external
+adapters separate where those responsibilities exist. Keep dependencies explicit
+and side effects at clear boundaries. Extract shared knowledge or behavior when
+there is actual duplication; avoid speculative frameworks and needless layers.
+Choose the smallest design that fully meets the agreed behavior and failure paths.
+
+The implementation plan must identify module ownership, interfaces, dependency
+direction, and behavior checks appropriate to the change. Reviewers must inspect
+the resulting boundaries, coupling, duplication, readability, error handling, and
+testability in the actual files. Record concrete maintainability findings and
+resolve them before advancing, just like correctness findings. Do not substitute
+a promise of later refactoring for meeting these requirements now.
 
 After **each** spec, implementation plan, implementation, and validation stage,
 spawn an independent reviewer subagent and wait for its comprehensive review.
@@ -93,8 +131,9 @@ decision rather than looping indefinitely or silently waiving the gate.
    reviewer checks reproducibility, acceptance coverage, actual results, and any
    remaining gaps. If required validation cannot run, remain blocked and explain
    the missing prerequisite; do not claim completion or open a ready PR.
-5. **PR.** After all applicable gates pass, commit the task changes, push the task
-   branch, and create a PR (one per changed repository when necessary) against
+5. **PR.** After all applicable gates pass, commit the task changes using the
+   commit requirements below, push the task branch, and create a PR (one per
+   changed repository when necessary) against
    the intended base. Check for an existing PR first and update it instead of
    duplicating it. Include the behavior change, validation evidence, and linked
    follow-ups/dependencies; do not rely on private local document paths as the
@@ -105,16 +144,81 @@ decision rather than looping indefinitely or silently waiving the gate.
    authorized. If push/PR access or CI is blocked, record the exact failure and
    remaining step rather than claiming the task is done.
 
-## Deferred work must start a follow-up session
+## Commit structure and durable context
+
+Use the `git-commit` skill when available for staging, safety checks, and commit
+verification. Inspect repository instructions and recent history for local
+conventions. GitHub does not impose one universal commit-message format; use the
+subject/body/footer structure below, adding Conventional Commit prefixes only
+when repository instructions or established history require them.
+
+```text
+Explain the outcome in an imperative subject
+
+What changed?
+Describe the concrete behavior or implementation change.
+
+Why?
+Explain the problem, impact, rationale, and relevant tradeoffs.
+
+How did you test it?
+Record actual checks, commands, and results, including any limitations.
+
+Potential risks
+Describe plausible regressions, compatibility concerns, or operational risks.
+
+Optional issue references or required trailers
+```
+
+Every commit message must include all four headers exactly as shown, in this
+order, with meaningful content under each. This includes trivial changes; there
+is no subject-only exception. Do not leave sections empty or fill them with
+placeholders. If tests were not run, say so and explain why; never imply a pass.
+If no material risks were identified, say so and briefly explain the assessment.
+Documenting missing validation or a known risk does not waive acceptance checks.
+
+Keep one coherent change per commit. Aim for a subject of 50 characters and keep
+it within 72 where practical, without a trailing period. Separate subject, body,
+and any footer with blank lines; wrap prose at roughly 72 characters without
+breaking commands, URLs, or exact error text. Keep each required section concise
+while preserving enough context to understand and assess the change.
+Include issue references and trailers only when supplied or required; do not
+invent issue numbers, authorship, sign-offs, or validation results.
+
+Following [My favourite Git commit](https://dhwthompson.com/2019/my-favourite-git-commit),
+preserve useful investigation findings and rejected approaches when they explain
+the decision or prevent repeated debugging. Scale detail to the change; avoid
+diff narration, generic filler, and mandatory long messages for trivial edits.
+Keep essential context in the commit itself rather than relying solely on a PR
+or private planning document. A follow-up mentioned in a message never excuses
+unfinished acceptance requirements.
+
+Before creating the PR, inspect the final commits and messages against these
+requirements as well as the staged diff, explicitly checking that each message
+contains all four required headers and meaningful content. Correct deficient
+messages before creating commits; do not rewrite existing history without
+authorization. If a
+required history correction needs additional authority, record the blocker.
+
+## Required work must finish before readiness
 
 Resolve discovered work needed for the agreed acceptance criteria in the current
-task whenever possible. Do not leave TODOs, skipped validation, reviewer findings,
-or "out of scope" labels as substitutes for completing agreed work.
+task. This includes integration, appropriate failure handling, necessary
+maintainability fixes, tests, environment setup, and required validation. Do not
+leave placeholders, TODOs, skipped validation, reviewer findings, or "out of scope"
+labels as substitutes for completing agreed work. Do not reduce agreed acceptance
+criteria merely to finish. If access or authority prevents completion, report the
+precise blocker and keep the required work open; a later-work list is not success.
 
-When a concrete related item must be separated, write a child brief and actually
-dispatch another top-level session using this adapter's dispatch script. This
-workflow authorizes follow-ups needed for the agreed task, not unrelated features
+When a concrete related item must be assigned to a separate session, write a
+child brief and actually dispatch another top-level session using this adapter's
+dispatch script. This workflow authorizes follow-ups needed for the agreed task,
+not unrelated features
 or unbounded discovery. A materially new product decision still needs agreement.
+Splitting ownership does not defer completion: any child needed for acceptance
+must finish, be integrated, and pass affected review and validation gates before
+the parent is ready. Independent work outside acceptance may run separately only
+within the user's authorized scope; never use it to park a required correction.
 
 - Give each distinct item a stable identifier and unique slug. Check the parent
   task record, existing child briefs, sessions, branches, and PRs first; reuse an
