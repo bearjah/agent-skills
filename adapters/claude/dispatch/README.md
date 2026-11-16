@@ -13,15 +13,24 @@ shared context and no return value. Everything it knows comes from the brief;
 everything you learn back comes from the artifact it writes.
 
 Both adapters load the [shared execution workflow](../../../core/dispatch/workflow.md).
-After brainstorming and the high-level plan are agreed, implementation sessions
-autonomously write a spec when needed, write an implementation plan, implement,
-validate in a working environment, and create a PR. An independent reviewer
-subagent must comprehensively review each stage, and findings must be resolved
-and re-reviewed before proceeding. The default brainstorming skill does not
-restart an already approved design.
+Implementation sessions start from the brief, write a spec when needed, write an
+implementation plan, implement, validate in a working environment, and create a
+PR autonomously. A spec, implementation plan, or completed design discussion is
+not required before launch. An independent reviewer subagent must comprehensively
+review each stage, and findings must be resolved and re-reviewed before proceeding.
+The default brainstorming skill does not repeat discussions already settled in
+a sufficient brief.
 
-Record approval evidence, scope, acceptance criteria, and validation prerequisites
-in the brief. Missing environment setup must be resolved; required checks that
+The brief contains the scope, product changes or proposals, intended outcomes,
+known functional and non-functional requirements, constraints, relevant context,
+and decisions already made. Preserve existing approval evidence and record open
+questions. When clarification is needed, discuss it with the user in the new
+session, wait before doing dependent work, and continue independent work where
+possible. Otherwise proceed without routine confirmation. During planning, map
+the scope and requirements to checks and expected results; validation executes
+those checks and records evidence against the requirements. Include known
+validation prerequisites in the brief and investigate the rest during planning.
+Missing environment setup must be resolved; required checks that
 cannot run block completion. Related work that must be split gets an actual,
 verified follow-up session with an explicit dependency base and a linked record.
 Required acceptance work must complete before the parent is ready. Planning-only,

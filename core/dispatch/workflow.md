@@ -5,27 +5,41 @@ workflow applies to implementation tasks; a research-only, review-only, or
 planning-only request ends at its requested deliverable. Permission modes and
 explicit user limits still apply. Do not change permission settings to advance.
 
-## Agreement and autonomy
+## Brief, clarification, and autonomy
 
-Finish brainstorming and obtain the user's agreement on the design, high-level
-plan, scope, and acceptance criteria before autonomous execution. Reuse approval
-already recorded in the brief or session; do not repeat brainstorming or ask for
-the same approval again. A launch, a suggested plan, or silence is not approval.
-If agreement is missing, gather context and ask for the missing decision.
+The brief is the handoff: it must contain the scope of work, product changes or
+proposals and their intended outcomes, known functional and non-functional
+requirements, constraints, relevant context, and decisions already made. Record
+any open questions and distinguish settled decisions from unresolved proposals.
+Carry forward all relevant information already established in the originating
+session; do not make the user repeat it. A spec, implementation plan, or completed
+design discussion is not a prerequisite for dispatch. Develop those artifacts
+in this session as needed, reusing adequate existing documents.
 
-Once agreement is established for an implementation task, continue autonomously
-through spec (when needed), implementation plan, implementation, validation, and
-PR creation. Treat this dispatch workflow as delegation of subsequent technical
-review gates to independent reviewer subagents within the agreed scope. Keep
-design agreement, spec review, plan review, and implementation as separate gates.
+Start from the brief and inspect the relevant repositories. If it provides enough
+information, proceed autonomously without repeating discovery or seeking routine
+confirmation. If a gap or ambiguity affects the work, discuss it with the user
+in this dispatched session. Explain the decision needed, its consequences, and
+a recommendation; wait for the answer before doing dependent work and continue
+independent work where possible. Record the answer in the task record and update
+affected artifacts. An unanswered question or silence does not settle a decision.
+Make routine technical decisions independently within the established scope;
+do not silently resolve a consequential product ambiguity or expand the scope.
+
+For an implementation task, continue through spec (when needed), implementation
+plan, implementation, validation, and PR creation. Treat this dispatch workflow
+as delegation of technical review gates to independent reviewer subagents within
+the agreed scope. Keep any needed product/design clarification, spec review, plan
+review, and implementation as separate gates.
 Do not stop to offer execution choices or request routine permission to proceed.
 An explicit user requirement to approve a later artifact still takes precedence;
 planning skills' default approval pauses do not require duplicate approval after
-the user has delegated these gates. Ask only for a material scope/design change,
-missing authority, or a blocker that cannot be resolved with available access.
+the user has delegated these gates. Raise missing authority or blockers that
+cannot be resolved with available access in this session as well.
 
-Use the selected entry skill only for its relevant stage. An already approved
-design does not need fresh brainstorming just because it is the default skill.
+Use the selected entry skill only for its relevant stage. A sufficient brief or
+settled design does not need fresh brainstorming just because it is the default
+skill. Use brainstorming when product or design clarification is actually needed.
 Use `spec-plan` when available for specs and plans, or the available equivalent;
 apply the delegated review gates above. Do not invoke a finalization workflow
 that ends execution before the required PR has been created.
@@ -50,10 +64,11 @@ record across session continuation rather than repeating completed stages.
 After **each** spec, implementation plan, implementation, and validation stage,
 spawn an independent reviewer subagent and wait for its comprehensive review.
 The reviewer must not be the agent that authored the stage. Give it the original
-request, agreed scope and acceptance criteria, repository instructions, relevant
-artifacts/diff, and actual validation evidence. Ask it to inspect the underlying
-files and assumptions, not just the author's summary. Reviewer access is for
-review; the parent resolves findings and owns stage progression.
+request, original brief, clarification decisions, scope and acceptance criteria,
+repository instructions, relevant artifacts/diff, and actual validation evidence.
+Ask it to inspect the underlying files and assumptions, not just the author's
+summary. Reviewer access is for review; the parent resolves findings and owns
+stage progression.
 
 Require a verdict of PASS or CHANGES REQUIRED, with concrete findings, severity,
 file/evidence references, and required corrections. Record the review and resolve
@@ -68,24 +83,34 @@ decision rather than looping indefinitely or silently waiving the gate.
 
 1. **Spec, if needed.** Reuse an adequate approved spec. Otherwise write one when
    behavior, interfaces, architecture, migration, or non-trivial risks need a
-   durable contract. Cover goals, non-goals, acceptance criteria, failure paths,
-   compatibility, and validation strategy. The reviewer checks completeness,
-   consistency with the agreement, feasibility, and unresolved decisions. For a
-   small change that needs no spec, record the rationale and have the plan
-   reviewer confirm it; never invent a spec approval.
+   durable contract. Translate the brief's product intent and scope into goals,
+   non-goals, functional and non-functional requirements, acceptance criteria,
+   failure paths, compatibility, and validation strategy. The reviewer checks
+   completeness against the brief and clarification decisions, feasibility, and
+   unresolved decisions. For a small change that needs no spec, record the
+   rationale and have the plan reviewer confirm it; never invent a spec approval.
 2. **Implementation plan.** Write concrete ordered tasks, affected files and
-   interfaces, dependencies, acceptance checks, and exact validation commands.
+   interfaces, and dependencies. Define validation here: map each scoped outcome
+   and functional and non-functional requirement to an appropriate check, its
+   expected result or agreed threshold, and the evidence to collect. Include
+   exact commands where applicable and concrete steps for behavioral or manual
+   checks. Clarify missing product requirements or consequential thresholds in
+   this session rather than inventing them or leaving them unchecked.
    Inspect the actual environment now: required toolchains, services, fixtures,
    credentials/access, and CI or supported remote runners. Include necessary
-   setup and environment fixes in the plan. The reviewer checks spec coverage,
-   sequencing, scope, feasibility, and whether validation can actually run.
+   setup and environment fixes in the plan. The reviewer checks coverage of the
+   brief and spec, sequencing, scope, feasibility, and whether the planned checks
+   can actually demonstrate that the requirements are met.
 3. **Implementation.** Complete the agreed work and appropriate tests in the
    task worktrees. The reviewer inspects the complete diff for correctness,
    regressions, security, maintainability, edge cases, and test coverage against
    the spec and plan. Fix findings before the final validation stage.
-4. **Validation.** Run the relevant checks and exercise the changed behavior in
-   the available supported environment. Fix missing dependencies, configuration,
-   fixtures, and services within existing authorization; use an authorized CI or
+4. **Validation.** Execute the checks defined in the plan and exercise the changed
+   behavior in the available supported environment. Report results against the
+   scope and functional and non-functional requirements, including failures and
+   gaps. If new evidence requires changing the checks, update the plan and rerun
+   affected review gates. Fix missing dependencies, configuration, fixtures, and
+   services within existing authorization; use an authorized CI or
    remote runner when the local host cannot support a required check. Record
    exact commands, environment, exit status, results, and the tested revision or
    diff. A command that was skipped, failed to start, or needs inaccessible

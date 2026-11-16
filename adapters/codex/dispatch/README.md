@@ -26,14 +26,23 @@ dispatch-task.sh --slug TASK --brief BRIEF.md --target REPO
 ```
 
 Both adapters load the [shared execution workflow](../../../core/dispatch/workflow.md).
-Record the agreed brainstorming outcome, high-level plan, acceptance criteria,
-approval evidence, and validation prerequisites in the brief. Once agreement
-exists, implementation sessions autonomously write a spec when needed, write an
-implementation plan, implement, validate, and create a PR. Each stage requires
+The brief contains the scope, product changes or proposals, intended outcomes,
+known functional and non-functional requirements, constraints, relevant context,
+and decisions already made. Preserve existing approval evidence and record open
+questions and known validation prerequisites. A spec, implementation plan, or
+completed design discussion is not required before launch. The new session
+develops those as needed, reusing adequate existing documents and settled decisions.
+When clarification is needed, discuss it with the user in that session and wait
+before doing dependent work; continue independent work where possible. Otherwise
+proceed autonomously through spec, implementation plan, implementation, validation,
+and PR creation without routine confirmation. Each stage requires
 an independent reviewer subagent's review and resolution of its findings before
 the next begins. A selected entry skill applies only to the relevant stage.
 
-Validation must run successfully in a supported environment. Necessary setup is
+During planning, map the scope and functional and non-functional requirements to
+checks, expected results, and evidence to collect. Validation executes those
+planned checks and reports results against the requirements. It must run
+successfully in a supported environment. Necessary setup is
 part of the task; unavailable access is a blocker, not a passed check. Work that
 must be split into a follow-up gets an actual verified dispatch with an explicit
 dependency base and a linked record. Follow-ups needed for acceptance must finish
