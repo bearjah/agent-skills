@@ -2,33 +2,33 @@
 
 CODEX_ROOT="$(cd "$ROOT/../../codex/dispatch" && pwd)"
 
-test_codex_install_links_git_commit_skill() {
+test_codex_install_links_the_promptify_skill() {
   local home skill_dir
   home="$SANDBOX/home"
-  skill_dir="$(cd "$ROOT/../../../skills/git-commit" && pwd)"
+  skill_dir="$(cd "$ROOT/../../../skills/promptify" && pwd)"
   mkdir -p "$home"
 
   HOME="$home" AGENT_DOCS_ROOT="$SANDBOX/docs" \
     bash "$CODEX_ROOT/install.sh" >/dev/null
 
-  [ -L "$home/.codex/skills/git-commit" ] || fail "Codex skill symlink missing"
-  assert_eq "$(readlink "$home/.codex/skills/git-commit")" \
-    "$skill_dir" "Codex git-commit link target"
+  [ -L "$home/.codex/skills/promptify" ] || fail "Codex skill symlink missing"
+  assert_eq "$(readlink "$home/.codex/skills/promptify")" \
+    "$skill_dir" "Codex promptify link target"
   [ ! -e "$home/.codex/worktrees" ] || fail "Codex install created a global worktree root"
 }
 
-test_codex_install_refuses_a_real_directory_at_git_commit_path() {
+test_codex_install_refuses_a_real_directory_at_the_skill_path() {
   local home rc
   home="$SANDBOX/home"
-  mkdir -p "$home/.codex/skills/git-commit"
+  mkdir -p "$home/.codex/skills/promptify"
   rc=0
 
   HOME="$home" AGENT_DOCS_ROOT="$SANDBOX/docs" \
     bash "$CODEX_ROOT/install.sh" >/dev/null 2>&1 || rc=$?
 
   [ "$rc" -ne 0 ] || fail "expected Codex install to reject a real skill dir"
-  [ ! -e "$home/.codex/skills/promptify" ] \
-    || fail "a rejected Codex install still linked an earlier skill"
+  [ ! -e "$home/.codex/skills/promptify/promptify" ] \
+    || fail "Codex install nested the link inside the pre-existing directory"
   [ ! -e "$home/.codex/scripts/dispatch-task.sh" ] \
     || fail "a rejected Codex install still linked the dispatch script"
 }

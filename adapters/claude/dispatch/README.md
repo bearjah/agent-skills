@@ -2,8 +2,7 @@
 
 This is the Claude Code adapter for the portable workflows in this repository.
 It is intentionally Claude-specific: it installs into `~/.claude`, invokes the
-Claude CLI, and provides the `/dispatch` command. The `git-commit` skill it
-installs lives in `../../../skills/git-commit`.
+Claude CLI, and provides the `/dispatch` command.
 
 Spawns a new window running an independent, pre-briefed session in an isolated
 git worktree. Works under either **tmux** or **herdr**.
@@ -51,9 +50,8 @@ merge, deployment, or worktree cleanup.
 ./install.sh
 ```
 
-Symlinks `bin/dispatch-task.sh`, `commands/dispatch.md` and the portable
-`git-commit` skill into `~/.claude/`, making `/dispatch` and the skill
-available in sessions.
+Symlinks `bin/dispatch-task.sh` and `commands/dispatch.md` into `~/.claude/`,
+making `/dispatch` available in sessions.
 
 ## Worktrees
 
