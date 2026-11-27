@@ -1,7 +1,7 @@
 # Codex dispatch adapter
 
 Installs `~/.codex/scripts/dispatch-task.sh` and the portable `promptify` and
-`finalize-work` skills:
+`git-commit` skills:
 
 ```bash
 ./install.sh

@@ -2,8 +2,8 @@
 
 This is the Claude Code adapter for the portable workflows in this repository.
 It is intentionally Claude-specific: it installs into `~/.claude`, invokes the
-Claude CLI, and provides the `/dispatch` command. The `finalize-work` skill it
-installs lives in `../../../skills/finalize-work`.
+Claude CLI, and provides the `/dispatch` command. The `git-commit` skill it
+installs lives in `../../../skills/git-commit`.
 
 Spawns a new window running an independent, pre-briefed session in an isolated
 git worktree. Works under either **tmux** or **herdr**.
@@ -50,7 +50,7 @@ merge, deployment, or worktree cleanup.
 ```
 
 Symlinks `bin/dispatch-task.sh`, `commands/dispatch.md` and the portable
-`finalize-work` skill into `~/.claude/`, making `/dispatch` and the skill
+`git-commit` skill into `~/.claude/`, making `/dispatch` and the skill
 available in sessions.
 
 ## Worktrees
@@ -143,29 +143,6 @@ dispatch-task.sh --cleanup fix-auth --target minimos
 
 Refuses a worktree with uncommitted changes or unmerged commits unless
 `--force`.
-
-## Closing the loop: the `finalize-work` skill
-
-`skills/finalize-work/SKILL.md` is the counterpart to a dispatch. It runs **inside the
-finishing worktree**, immediately before the session is closed, and it reconciles
-the paperwork a dispatch leaves behind: are the documents' `**Status:**` lines
-still true against what `gh` says actually merged, did anything deferred go
-unrecorded, and what is left to clean up.
-
-It reports and commits; it never destroys. It may edit documents under
-`${AGENT_DOCS_ROOT:-$HOME/docs}`, add the `INDEX.md` row, and commit that docs
-repository by explicit pathspec. Removing worktrees, deleting branches, pushing and anything touching a
-PR or an issue leave as paste-ready commands for you — including the
-`--cleanup` line above, filled in with this dispatch's slug and every one of its
-targets. A session cannot remove its own cwd anyway.
-
-Outside a dispatch worktree it says so and stops, rather than guessing which work
-item it is finalizing.
-
-No `trigger:` key in its frontmatter and no slash command: unlike `promptify`,
-this is not invoked by name. It fires from the description on the phrases that
-actually precede it — "finalize this work", "wrap up", "ready to close this
-session".
 
 ## Tests
 
