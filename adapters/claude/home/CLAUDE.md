@@ -9,6 +9,16 @@ The agent-skills plugin is installed (skills are namespaced `agent-skills:<name>
 
 State in one line which skill you're applying so I can redirect. If I say "just do it" or "quick fix", skip the process.
 
+# Start from the latest code
+
+Before starting any work in a git repo, including trivial work, fetch from the remote and begin from the latest version of the branch the work builds on:
+
+- New work: create the branch (or worktree) from the freshly fetched remote base branch, such as `origin/main`, not from a local copy that may be behind.
+- Continuing an existing branch: pull it first, and bring in the latest base branch if the base has moved in a way that matters to the work.
+- Before opening or merging a pull request, fetch again; if the base has moved, update the branch and re-run the checks.
+- Never discard anything to get up to date. If the checkout has uncommitted changes or local commits that are not on the remote, leave them as they are, work in a separate worktree, and tell me.
+- If the fetch fails, say so and tell me which commit you started from instead of carrying on silently from stale code.
+
 # Model routing
 
 Claude Code has no automatic model router, so route work yourself. The main session does the judgement work; push mechanical and high-volume work down to cheaper models:
