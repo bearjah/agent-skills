@@ -11,15 +11,34 @@ Reusable workflows for Claude Code and Codex.
 
 ## Install
 
-Run the installer for your agent:
+Clone the repository, then run the installer for each part you want. The
+installers link files into your agent's home directory, so keep the clone where
+it is afterwards.
 
 ```bash
+git clone https://github.com/bearjah/agent-skills.git ~/agent-skills
+cd ~/agent-skills
+
 adapters/claude/home/install.sh        # global instructions, agents, skills plugin
 adapters/claude/dispatch/install.sh    # the /dispatch command
-adapters/codex/dispatch/install.sh
+adapters/codex/dispatch/install.sh     # promptify and dispatch for Codex
 ```
 
-Adapter-specific usage is documented in each adapter directory.
+### Setting up Claude Code on a new machine
+
+1. Install Claude Code and log in.
+2. Install `jq`, which the home installer uses to update `settings.json`.
+3. Clone this repository and run `adapters/claude/home/install.sh`.
+4. Start Claude Code. If the `agent-skills:*` skills are not listed, run
+   `/plugin install agent-skills@addy-agent-skills` once.
+5. Choose your own model and permission mode with `/config`; settings are not
+   shared between machines.
+
+Details for each part:
+
+- [Claude home setup](adapters/claude/home/README.md)
+- [Claude dispatch](adapters/claude/dispatch/README.md)
+- [Codex dispatch](adapters/codex/dispatch/README.md)
 
 Set `AGENT_DOCS_ROOT` to move durable briefs, designs, reviews, and research from
 the default `~/docs` root.
