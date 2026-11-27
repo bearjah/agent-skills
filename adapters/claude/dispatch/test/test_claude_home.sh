@@ -113,3 +113,54 @@ test_home_setup_has_no_machine_paths() {
     fail "the shared setup names a machine path"
   fi
 }
+
+# A machine with a setup its owner no longer wants: --replace installs this
+# one, and keeps what was there in a backup folder instead of deleting it.
+test_home_install_replace_backs_up_and_links() {
+  local home="$SANDBOX/home" out backup
+  mkdir -p "$home/.claude/agents"
+  printf 'old rules\n' > "$home/.claude/CLAUDE.md"
+  printf 'old scout\n' > "$home/.claude/agents/scout.md"
+  out="$(HOME="$home" bash "$HOME_SETUP/install.sh" --replace)" || fail "--replace failed"
+  [ -L "$home/.claude/CLAUDE.md" ] || fail "instructions were not replaced"
+  [ -L "$home/.claude/agents/scout.md" ] || fail "agent was not replaced"
+  backup="$(find "$home/.claude/backups" -mindepth 1 -maxdepth 1 -type d -name 'home-setup-*')"
+  [ -n "$backup" ] || fail "no backup folder was created"
+  assert_eq "$(cat "$backup/CLAUDE.md")" "old rules" "backed-up instructions"
+  assert_eq "$(cat "$backup/agents/scout.md")" "old scout" "backed-up agent"
+  assert_contains "$out" "$backup"
+}
+
+test_home_install_replace_makes_no_backup_when_nothing_differs() {
+  local home="$SANDBOX/home"
+  mkdir -p "$home"
+  HOME="$home" bash "$HOME_SETUP/install.sh" --replace >/dev/null || fail "--replace failed"
+  [ ! -e "$home/.claude/backups" ] || fail "an empty backup folder was left behind"
+}
+
+test_home_install_replace_leaves_other_agents_and_settings() {
+  local home="$SANDBOX/home"
+  mkdir -p "$home/.claude/agents"
+  printf 'old rules\n' > "$home/.claude/CLAUDE.md"
+  printf 'mine\n' > "$home/.claude/agents/other.md"
+  printf '{"model":"sonnet"}\n' > "$home/.claude/settings.json"
+  HOME="$home" bash "$HOME_SETUP/install.sh" --replace >/dev/null
+  assert_eq "$(cat "$home/.claude/agents/other.md")" "mine" "unrelated agent"
+  assert_eq "$(jq -r '.model' "$home/.claude/settings.json")" "sonnet" "existing model"
+}
+
+test_home_install_refusal_names_the_replace_option() {
+  local home="$SANDBOX/home" err
+  mkdir -p "$home/.claude"
+  printf 'old rules\n' > "$home/.claude/CLAUDE.md"
+  err="$(HOME="$home" bash "$HOME_SETUP/install.sh" 2>&1 >/dev/null)" || true
+  assert_contains "$err" "--replace"
+}
+
+test_home_install_rejects_an_unknown_option() {
+  local home="$SANDBOX/home" rc=0
+  mkdir -p "$home"
+  HOME="$home" bash "$HOME_SETUP/install.sh" --force >/dev/null 2>&1 || rc=$?
+  [ "$rc" -ne 0 ] || fail "expected an unknown option to be rejected"
+  [ ! -e "$home/.claude/CLAUDE.md" ] || fail "an unknown option still installed"
+}
