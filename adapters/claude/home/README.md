@@ -35,8 +35,20 @@ Requires `jq`. The installer:
   every setting already there.
 
 It changes nothing if `~/.claude/CLAUDE.md` or one of the four agents already
-exists with different content: move that file aside and run it again. Other
-agents in `~/.claude/agents/` are left alone. Running it twice is safe.
+exists with different content. Other agents in `~/.claude/agents/` are left
+alone. Running it twice is safe.
+
+### Replacing an existing setup
+
+```bash
+./install.sh --replace
+```
+
+Use this on a machine whose current setup you no longer want. Each file that
+would be replaced is first moved to `~/.claude/backups/home-setup-<date>-<time>/`,
+and the installer prints where. Only `CLAUDE.md` and the four agents are
+replaced: other agents, skills and every existing setting stay as they are. To
+go back, move the backed-up files over the links.
 
 Start Claude Code afterwards. If the plugin's skills are not listed, run
 `/plugin install agent-skills@addy-agent-skills` once.
