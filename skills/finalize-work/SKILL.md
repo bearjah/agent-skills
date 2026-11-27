@@ -49,9 +49,7 @@ are not sitting in, and never infer one from the shell's cwd, which drifts.
 Normal, and it changes Phase 2: `--cleanup` deletes `dispatch/<slug>`, which is then
 not the branch holding the work. Find the item under
 `$agent_docs_root/designs/` or `$agent_docs_root/reviews/`; no match, or several,
-is a question for the human. A spec or plan committed in the target repository
-ships in the task's PR and is not reconciled here: correct it in that PR before
-it merges. Briefs live in `dispatch/` and raw evidence in
+is a question for the human. Briefs live in `dispatch/` and raw evidence in
 `research/`; neither is the work item's canonical document folder.
 
 The `find` command finds only worktrees carrying **this** slug. A session that made another by
