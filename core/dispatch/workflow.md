@@ -51,10 +51,22 @@ dispatched task worktrees; preserve unrelated changes and reference repositories
 Resolve canonical repository names from the source repositories in the brief,
 not from task branch names or worktree directories.
 
-Under the configured docs root, store specs in `<repo>/designs/`, implementation
-plans in `<repo>/plans/`, reviews and validation evidence in `<repo>/reviews/`,
-and briefs in `dispatch/`. Reuse matching existing artifacts. Do not commit the
-shared docs repository unless explicitly requested. Maintain a task record with
+Track the spec and the implementation plan in the repository the work is
+delivered to, on the task branch. Follow that repository's own convention for
+design documents when it has one; otherwise use
+`docs/designs/YYYY-MM-DD-<slug>-spec.md` and `docs/plans/YYYY-MM-DD-<slug>-plan.md`.
+Commit them before the next code commit so they are part of the task's PR, and
+keep them current in that PR when the work departs from them.
+Repository-relative paths only: no home-directory paths, private folder names,
+or private repository names; refer to briefs, reviews, and evidence in plain
+words. When several
+repositories change, the documents live in the primary one and the other PRs
+link to them.
+
+Under the configured docs root, store reviews and validation evidence in
+`<repo>/reviews/`, research in `research/`, and briefs in `dispatch/`. Reuse
+matching existing artifacts. Do not commit the shared docs repository unless
+explicitly requested. Maintain a task record with
 approval evidence, artifact paths, stage status, review findings and resolutions,
 validation results, follow-up dispatch identifiers, and PR URLs. Preserve this
 record across session continuation rather than repeating completed stages.
@@ -121,9 +133,9 @@ decision rather than looping indefinitely or silently waiving the gate.
 5. **PR.** After all applicable gates pass, commit the task changes, push the task
    branch, and create a PR (one per changed repository when necessary) against
    the intended base. Check for an existing PR first and update it instead of
-   duplicating it. Include the behavior change, validation evidence, and linked
-   follow-ups/dependencies; do not rely on private local document paths as the
-   only reviewer context. Check required CI results on the pushed revision and
+   duplicating it. Include the behavior change, validation evidence, linked
+   follow-ups/dependencies, and the repository paths of the spec and plan; do
+   not rely on private local document paths as the only reviewer context. Check required CI results on the pushed revision and
    resolve failures. Any code changes invalidate affected review and validation
    gates; rerun them before reporting readiness. Verify the PR URL, head, base,
    and status. Do not merge, deploy, or clean up worktrees unless separately

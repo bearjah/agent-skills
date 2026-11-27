@@ -79,7 +79,7 @@ test_codex_dispatch_uses_configured_docs_root() {
   [ -f "$SANDBOX/docs/dispatch/review.md" ] || fail "Codex did not stage the brief"
   assert_contains "${argv[*]}" "$SANDBOX/docs"
   assert_contains "${argv[*]}" "$SANDBOX/docs/dispatch/review.md"
-  assert_contains "${argv[*]}" "never in a target repository's docs directory"
+  assert_contains "${argv[*]}" "Commit the spec and implementation plan in the target repository's docs directory"
   case " ${argv[*]} " in
     *" --sandbox "*) fail "Codex dispatch overrode the configured sandbox by default" ;;
   esac

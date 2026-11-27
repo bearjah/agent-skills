@@ -37,9 +37,11 @@ Required acceptance work must complete before the parent is ready. Planning-only
 research-only, and review-only briefs retain their scope. Explicit later human
 approval requirements and permission limits still apply.
 
-Store specs in `${AGENT_DOCS_ROOT:-$HOME/docs}/<canonical-repo>/designs/`, plans
-in that repository's `plans/`, and review/validation evidence in `reviews/`.
-Briefs remain under the docs root's `dispatch/`. Do not commit the shared docs
+Specs and plans are committed in the target repository's docs directory
+(`docs/designs/` and `docs/plans/` unless it has its own convention) and ship in
+the task's PR. Review/validation evidence goes in
+`${AGENT_DOCS_ROOT:-$HOME/docs}/<canonical-repo>/reviews/`. Briefs remain under
+the docs root's `dispatch/`. Do not commit the shared docs
 repository without an explicit request. Opening the PR does not authorize a
 merge, deployment, or worktree cleanup.
 

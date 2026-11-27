@@ -49,8 +49,9 @@ dependency base and a linked record. Follow-ups needed for acceptance must finis
 before the parent is ready. Planning/research/review-only briefs retain that
 scope, and explicit human approval gates and permission limits remain in force.
 
-Specs and plans live under `$AGENT_DOCS_ROOT/<canonical-repo>/designs/` and
-`plans/` respectively (docs root defaults to `~/docs`). Reviews and validation
-evidence live under the same repository's `reviews/`; briefs remain in
-`$AGENT_DOCS_ROOT/dispatch/`. Shared docs are not committed without an explicit
+Specs and plans are committed in the target repository's docs directory
+(`docs/designs/` and `docs/plans/` unless it has its own convention) and ship in
+the task's PR. Reviews and validation evidence live under
+`$AGENT_DOCS_ROOT/<canonical-repo>/reviews/` (docs root defaults to `~/docs`);
+briefs remain in `$AGENT_DOCS_ROOT/dispatch/`. Shared docs are not committed without an explicit
 request. PR creation does not authorize merging or deploying.
