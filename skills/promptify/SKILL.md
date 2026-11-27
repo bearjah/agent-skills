@@ -68,10 +68,12 @@ Apply the universal core, the anti-patterns to strip, and the guardrails
 below, then read `references/lenses.md` and apply **only** the section for
 the kind you detected.
 
-For dispatch, design, review, or research prompts that create durable documents,
+For dispatch, review, or research prompts that create durable documents,
 resolve `${AGENT_DOCS_ROOT:-$HOME/docs}` and name an absolute destination beneath
-its `dispatch/`, `designs/`, `reviews/`, or `research/` directory. Never default
-to a target repository's `docs/` directory.
+its `dispatch/`, `reviews/`, or `research/` directory. A spec or implementation
+plan is the exception: it is committed in the target repository's docs
+directory (`docs/designs/` and `docs/plans/` unless the repository has its own
+convention), named by a repository-relative path.
 
 ### 5. Present and wait
 

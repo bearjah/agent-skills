@@ -29,7 +29,10 @@ test_skill_points_at_lenses() {
 
 test_skill_routes_durable_documents_to_the_configured_root() {
   assert_file_has "$ROOT/SKILL.md" 'AGENT_DOCS_ROOT:-$HOME/docs'
-  assert_file_has "$ROOT/SKILL.md" "Never default"
+}
+
+test_skill_routes_specs_and_plans_to_the_target_repository() {
+  assert_file_has "$ROOT/SKILL.md" "committed in the target repository's docs"
 }
 
 test_skill_within_line_budget() {

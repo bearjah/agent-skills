@@ -38,3 +38,17 @@ test_dispatch_brief_is_staged_under_docs_root() {
   assert_eq "$staged" "$SANDBOX/docs/dispatch/source.md"
   assert_file_has "$staged" "brief"
 }
+
+# Specs and plans travel with the code they describe, so a reviewer of the pull
+# request can read them; briefs, reviews and research stay in the docs root.
+test_workflow_keeps_specs_and_plans_in_the_target_repository() {
+  local workflow="$ROOT/../../../core/dispatch/workflow.md"
+  assert_file_has "$workflow" 'docs/designs/YYYY-MM-DD-<slug>-spec.md'
+  assert_file_has "$workflow" 'docs/plans/YYYY-MM-DD-<slug>-plan.md'
+  assert_file_has "$workflow" 'Repository-relative paths only'
+}
+
+test_claude_launch_prompt_keeps_specs_and_plans_in_the_target_repository() {
+  assert_file_has "$ROOT/bin/dispatch-task.sh" \
+    "Commit the spec and implementation plan in the target repository's docs directory"
+}

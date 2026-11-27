@@ -23,9 +23,11 @@ with these sections:
 4. **Scope and requirements** — the work included, explicit exclusions,
    constraints, and known functional and non-functional requirements. Include
    relevant behavior and quality expectations already discussed with the user.
-5. **Deliverable** — the intended outcome and acceptance criteria. Use absolute
-   paths under `$docs_root/<canonical-repo>/designs/` for specs, `plans/` for
-   implementation plans, `reviews/` for reviews, and `research/` for evidence.
+5. **Deliverable** — the intended outcome and acceptance criteria. Specs and
+   implementation plans are committed in the target repository's docs directory
+   (`docs/designs/` and `docs/plans/` unless the repository has its own
+   convention). Use absolute paths under `$docs_root/<canonical-repo>/reviews/`
+   for reviews and `$docs_root/research/` for evidence.
    Implementation tasks finish with a validated PR, not just documents.
 6. **Dispatch metadata** — base ref and date.
 7. **Decisions and execution scope** — carry forward decisions already made,
